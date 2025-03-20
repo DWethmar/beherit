@@ -1,0 +1,20 @@
+{
+  "name": "Go Dev Container",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {},
+      "extensions": [
+        "streetsidesoftware.code-spell-checker"
+      ]
+    }
+  },
+  "postCreateCommand": {
+    "Initialize githooks": "./setup-githooks.sh",
+    "Install pprof": "go install github.com/google/pprof@latest",
+    "Install Graphviz": "sudo apt update -y; sudo apt install -y graphviz"
+  },
+  "containerUser": "vscode"
+}
