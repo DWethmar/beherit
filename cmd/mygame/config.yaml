@@ -1,16 +1,51 @@
 triggers:
-  create.game:
-    - command: create.blueprint.entity
+  game.created:
+    - command: blueprint.create.entity
+      condition:
       params:
-        entity_id: 9
         components:
-          - position:
+          - type: position
+            entity$: CreateEntity()
+            data:
               x$: 10 + 10
               y: 10
-    - command: create.blueprint.entity
+    - command: blueprint.create.entity
+      condition:
       params:
-        entity_id: 2
         components:
-          - position:
-              X: 10
-              Y: 10
+          - type: position
+            entity$: CreateEntity()
+            data:
+              x: 50
+              y: 50
+
+  game.updated:
+    - command: blueprint.update.entity
+      include:
+        pressedUp$: KeyPressed('up') || KeyPressed('w')
+        pressedDown$: KeyPressed('down') || KeyPressed('s')
+        pressedLeft$: KeyPressed('left') || KeyPressed('a')
+        pressedRight$: KeyPressed('right') || KeyPressed('d')
+        pos$: first(ListComponents('position'))
+      condition: pressedUp || pressedDown || pressedLeft || pressedRight
+      params:
+        components:
+          - id$: pos.ID
+            type: position
+            entity$: pos.Entity
+            data:
+              x$: "pressedLeft ? pos.Data.X - 1 : pressedRight ? pos.Data.X + 1 : pos.Data.X"
+              y$: "pressedUp ? pos.Data.Y - 1 : pressedDown ? pos.Data.Y + 1 : pos.Data.Y"
+
+    - command: blueprint.update.entity
+      include:
+        pos$: last(ListComponents('position'))
+      condition: pos.Data.X < 600
+      params:
+        components:
+          - id$: pos.ID
+            type: position
+            entity$: pos.Entity
+            data:
+              x$: pos.Data.X + 1
+              y$: "pos.Data.Y < 200 ? pos.Data.Y + 1 : pos.Data.Y"

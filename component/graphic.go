@@ -1,11 +1,10 @@
-package graphic
+package component
 
 import (
 	"github.com/dwethmar/beherit/cmd/mygame/sprite"
-	"github.com/dwethmar/beherit/component"
 )
 
-const Type = "graphic"
+const GraphicType Type = "graphic"
 
 type Graphic struct {
 	Sprite  sprite.Sprite
@@ -15,9 +14,9 @@ type Graphic struct {
 	OffSetY int
 }
 
-func NewComponent() *component.Component {
-	return &component.Component{
-		Type: Type,
+func NewGraphicComponent() *Component {
+	return &Component{
+		Type: GraphicType,
 		Data: &Graphic{
 			Sprite: sprite.Sprite{},
 		},

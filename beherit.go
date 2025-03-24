@@ -14,6 +14,11 @@ const (
 	windowHeight = 480
 )
 
+const (
+	GameCreatedTrigger string = "game.created"
+	UpdateTrigger      string = "game.updated"
+)
+
 type GameState uint
 
 const (
@@ -78,7 +83,6 @@ func (g *Game) init() error {
 		return fmt.Errorf("could not open file: %w", err)
 	}
 	defer file.Close()
-	// parse yaml
 	var config Config
 	if err = yaml.NewDecoder(file).Decode(&config); err != nil {
 		return fmt.Errorf("could not decode yaml: %w", err)

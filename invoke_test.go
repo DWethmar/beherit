@@ -6,30 +6,50 @@ import (
 
 	"github.com/dwethmar/beherit"
 	"github.com/dwethmar/beherit/command"
-	"github.com/dwethmar/beherit/component"
 	"github.com/dwethmar/beherit/entity"
 )
 
+type Component struct {
+	Type   string                 `json:"type"`
+	Params map[string]interface{} `json:"params"`
+}
+
 type MockCommand struct {
 	EntityID   entity.Entity
-	Components map[component.Type]map[string]interface{}
+	Components []Component
 }
 
 func (c MockCommand) Type() string { return "testcommand" }
 
+type MockEnv struct {
+	nextId int
+}
+
+func (e MockEnv) Create() map[string]any {
+	e.nextId++
+	return map[string]any{
+		"EntityID": 1,
+	}
+}
+
 func TestInvoker_Invoke(t *testing.T) {
 	t.Run("invoke", func(t *testing.T) {
+		entityManager := entity.NewManager(1)
 		calledHandler := 0
 		commandFactory := command.NewFactory()
-		commandFactory.Register(func() command.Command {
-			return &MockCommand{}
-		})
+		createCMD := func() *command.Command {
+			return &command.Command{
+				Type: "testcommand",
+				Data: &MockCommand{},
+			}
+		}
+		commandFactory.Register(createCMD)
 		commandBus := command.NewBus(slog.Default())
-		commandBus.RegisterHandler(&MockCommand{}, command.HandlerFunc(func(_ command.Command) error {
+		commandBus.RegisterHandler(createCMD(), command.HandlerFunc(func(_ *command.Command) error {
 			calledHandler++
 			return nil
 		}))
-		invoker := beherit.NewInvoker(commandBus, commandFactory)
+		invoker := beherit.NewInvoker(entityManager, commandBus, commandFactory, &MockEnv{})
 		invoker.Config(
 			beherit.Config{
 				Triggers: map[string][]*beherit.TriggerCommand{
@@ -37,11 +57,14 @@ func TestInvoker_Invoke(t *testing.T) {
 						{
 							Command: "testcommand",
 							Params: map[string]any{
-								"EntityID": 1,
-								"Components": map[string]any{
-									"position": map[string]any{
-										"X": 1,
-										"Y": 2,
+								"EntityID$": "CreateEntity()",
+								"Components": []map[string]any{
+									{
+										"type": "position",
+										"params": map[string]any{
+											"X$": "1 + 2",
+											"Y":  2,
+										},
 									},
 								},
 							},
@@ -49,11 +72,14 @@ func TestInvoker_Invoke(t *testing.T) {
 						{
 							Command: "testcommand",
 							Params: map[string]any{
-								"EntityID": 2,
-								"Components": map[string]any{
-									"position": map[string]any{
-										"X": 1,
-										"Y": 2,
+								"EntityID": 1,
+								"Components": []map[string]any{
+									{
+										"type": "position",
+										"params": map[string]any{
+											"X": 1,
+											"Y": 2,
+										},
 									},
 								},
 							},

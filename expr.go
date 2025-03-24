@@ -17,7 +17,19 @@ func NewExpressionCompiler() *ExpressionCompiler {
 	}
 }
 
-func (ec *ExpressionCompiler) Compile(params map[string]any) (map[string]any, error) {
+func (ec *ExpressionCompiler) Compile(s string) (*vm.Program, error) {
+	if p, ok := ec.programs[s]; ok {
+		return p, nil
+	}
+	program, err := expr.Compile(s)
+	if err != nil {
+		return nil, fmt.Errorf("could not compile expression: %w", err)
+	}
+	ec.programs[s] = program
+	return program, nil
+}
+
+func (ec *ExpressionCompiler) CompileMap(params map[string]any) (map[string]any, error) {
 	result := make(map[string]any)
 	for key, value := range params {
 		switch v := value.(type) {
@@ -26,7 +38,7 @@ func (ec *ExpressionCompiler) Compile(params map[string]any) (map[string]any, er
 			for i, item := range v {
 				switch item := item.(type) {
 				case map[string]any:
-					r, err := ec.Compile(item)
+					r, err := ec.CompileMap(item)
 					if err != nil {
 						return nil, err
 					}
@@ -37,7 +49,7 @@ func (ec *ExpressionCompiler) Compile(params map[string]any) (map[string]any, er
 			}
 			result[key] = s
 		case map[string]any:
-			r, err := ec.Compile(v)
+			r, err := ec.CompileMap(v)
 			if err != nil {
 				return nil, err
 			}

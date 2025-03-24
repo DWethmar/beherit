@@ -8,7 +8,25 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestCompileParamExpressions(t *testing.T) {
+func TestCompileMapExpressions(t *testing.T) {
+	t.Run("compile param expressions", func(t *testing.T) {
+		ec := beherit.NewExpressionCompiler()
+		p, err := ec.Compile("1 + 1")
+		if err != nil {
+			t.Error(err)
+		}
+		if p == nil {
+			t.Error("expected a program, got nil")
+		}
+
+		p2, err := ec.Compile("1 + 1")
+		if err != nil {
+			t.Error(err)
+		}
+		if p != p2 {
+			t.Error("expected the same program")
+		}
+	})
 	t.Run("compile param expressions", func(t *testing.T) {
 		ec := beherit.NewExpressionCompiler()
 		programs := map[string]any{
@@ -23,7 +41,7 @@ func TestCompileParamExpressions(t *testing.T) {
 				"Name$": "1 + 1",
 			},
 		}
-		got, err := ec.Compile(programs)
+		got, err := ec.CompileMap(programs)
 		if err != nil {
 			t.Error(err)
 		}
@@ -67,7 +85,7 @@ func TestRunParamExpressions(t *testing.T) {
 				},
 			},
 		}
-		compiled, err := ec.Compile(params)
+		compiled, err := ec.CompileMap(params)
 		if err != nil {
 			t.Error(err)
 		}
@@ -108,7 +126,7 @@ func TestRunParamExpressions(t *testing.T) {
 				},
 			},
 		}
-		compiled, err := ec.Compile(params)
+		compiled, err := ec.CompileMap(params)
 		if err != nil {
 			t.Error(err)
 		}

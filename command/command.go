@@ -6,17 +6,18 @@ import (
 )
 
 // Command is a command.
-type Command interface {
-	Type() string
+type Command struct {
+	Type string
+	Data any
 }
 
 type Handler interface {
-	Handle(Command) error
+	Handle(*Command) error
 }
 
-type HandlerFunc func(Command) error
+type HandlerFunc func(*Command) error
 
-func (f HandlerFunc) Handle(c Command) error {
+func (f HandlerFunc) Handle(c *Command) error {
 	return f(c)
 }
 
@@ -32,33 +33,33 @@ func NewBus(logger *slog.Logger) *Bus {
 	}
 }
 
-func (cb *Bus) RegisterHandler(c Command, handler Handler) {
-	cb.handlers[c.Type()] = handler
+func (cb *Bus) RegisterHandler(c *Command, handler Handler) {
+	cb.handlers[c.Type] = handler
 }
 
-func (cb *Bus) Emit(c Command) error {
-	handler, ok := cb.handlers[c.Type()]
+func (cb *Bus) Emit(c *Command) error {
+	handler, ok := cb.handlers[c.Type]
 	if !ok {
-		return fmt.Errorf("no handler for trigger %s", c.Type())
+		return fmt.Errorf("no handler for trigger %s", c.Type)
 	}
 	return handler.Handle(c)
 }
 
 type Factory struct {
-	factory map[string]func() Command
+	factory map[string]func() *Command
 }
 
 func NewFactory() *Factory {
 	return &Factory{
-		factory: make(map[string]func() Command),
+		factory: make(map[string]func() *Command),
 	}
 }
 
-func (f *Factory) Register(v func() Command) {
-	f.factory[v().Type()] = v
+func (f *Factory) Register(v func() *Command) {
+	f.factory[v().Type] = v
 }
 
-func (f *Factory) Create(commandType string) (Command, error) {
+func (f *Factory) Create(commandType string) (*Command, error) {
 	factory, ok := f.factory[commandType]
 	if !ok {
 		return nil, fmt.Errorf("no factory found for command type %s", commandType)

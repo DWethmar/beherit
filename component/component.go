@@ -10,46 +10,42 @@ import (
 type Type string
 
 type Component struct {
-	ID     uint
-	Entity entity.Entity
-	Type   Type
-	Data   any
+	ID     uint          `json:"id"`
+	Entity entity.Entity `json:"entity"`
+	Type   Type          `json:"type"`
+	Data   any           `json:"data"`
 }
 
 // Manager is a component manager.
 type Manager struct {
-	byEntity  *byEntity
-	byType    *byType
-	factories map[Type]func() *Component
+	byEntity *byEntity
+	byType   *byType
+	nextID   uint
 }
 
 // NewManager creates a new component manager.
-func NewManager() *Manager {
+func NewManager(nextID uint) *Manager {
 	return &Manager{
-		byEntity:  newByEntity(),
-		byType:    newByType(),
-		factories: make(map[Type]func() *Component),
+		byEntity: newByEntity(),
+		byType:   newByType(),
+		nextID:   nextID,
 	}
-}
-
-// Register registers a component factory.
-func (cm *Manager) Register(factory func() *Component) {
-	cm.factories[factory().Type] = factory
 }
 
 // Create creates a new component.
-func (cm *Manager) Create(entity entity.Entity, componentType Type) (Component, error) {
-	factory, ok := cm.factories[componentType]
-	if !ok {
-		return Component{}, fmt.Errorf("factory not found for component type %s", componentType)
+func (cm *Manager) Add(c Component) error {
+	if c.ID == 0 {
+		c.ID = cm.nextID
+		cm.nextID++
 	}
-	component := Component{
-		ID:     uint(len(cm.byType.List(componentType)) + 1),
-		Entity: entity,
-		Type:   componentType,
-		Data:   factory(),
+	// check if component already exists
+	o, err := cm.byType.Get(c.Type, c.ID)
+	if err == nil {
+		return fmt.Errorf("component already exists: %d", o.ID)
 	}
-	return component, nil
+	cm.byEntity.Add(&c)
+	cm.byType.Add(&c)
+	return nil
 }
 
 // Update updates a component.
@@ -98,4 +94,26 @@ func (cm *Manager) Remove(componentType Type, id uint) error {
 		return err
 	}
 	return nil
+}
+
+type Factory struct {
+	factories map[Type]func() *Component
+}
+
+func NewFactory() *Factory {
+	return &Factory{
+		factories: make(map[Type]func() *Component),
+	}
+}
+
+func (f *Factory) Register(factory func() *Component) {
+	f.factories[factory().Type] = factory
+}
+
+func (f *Factory) Create(componentType Type) (*Component, error) {
+	factory, ok := f.factories[componentType]
+	if !ok {
+		return nil, fmt.Errorf("factory not found for component type %s", componentType)
+	}
+	return factory(), nil
 }
