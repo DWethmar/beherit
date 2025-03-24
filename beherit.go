@@ -1,7 +1,12 @@
 package beherit
 
 import (
+	"fmt"
+	"log/slog"
+	"os"
+
 	"github.com/hajimehoshi/ebiten/v2"
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -18,44 +23,48 @@ const (
 	GameStateStopped
 )
 
-type System interface {
-	Init(*EntityManager, *ComponentManager) error
-	Update() error
-	Draw(screen *ebiten.Image)
+type Renderer interface {
+	Draw(screen *ebiten.Image) error
 }
 
 type Game struct {
-	state            GameState
-	entityManager    *EntityManager
-	componentManager *ComponentManager
-	systems          []System
+	logger     *slog.Logger
+	configFile string
+	state      GameState
+	Invoker    *Invoker
+	renderers  []Renderer
 }
 
-func NewGame(
-	systems []System,
-) *Game {
+type Options struct {
+	Logger     *slog.Logger
+	ConfigFile string
+	Invoker    *Invoker
+	Renderer   []Renderer
+}
+
+func NewGame(opts Options) *Game {
 	return &Game{
-		state:            GameStateInitializing,
-		entityManager:    NewEntityManager(),
-		componentManager: NewComponentManager(),
-		systems:          systems,
+		logger:     opts.Logger,
+		configFile: opts.ConfigFile,
+		state:      GameStateInitializing,
+		Invoker:    opts.Invoker,
+		renderers:  opts.Renderer,
 	}
 }
 
 func (g *Game) Update() error {
 	switch g.state {
 	case GameStateInitializing:
-		for _, system := range g.systems {
-			if err := system.Init(g.entityManager, g.componentManager); err != nil {
-				return err
-			}
+		if err := g.init(); err != nil {
+			return err
+		}
+		if err := g.Invoker.Invoke(GameCreatedTrigger); err != nil {
+			return fmt.Errorf("could not invoke game created trigger: %w", err)
 		}
 		g.state = GameStateRunning
 	case GameStateRunning:
-		for _, system := range g.systems {
-			if err := system.Update(); err != nil {
-				return err
-			}
+		if err := g.Invoker.Invoke(UpdateTrigger); err != nil {
+			return fmt.Errorf("could not invoke update trigger: %w", err)
 		}
 	case GameStatePaused:
 	case GameStateStopped:
@@ -63,9 +72,28 @@ func (g *Game) Update() error {
 	return nil
 }
 
+func (g *Game) init() error {
+	file, err := os.Open(g.configFile)
+	if err != nil {
+		return fmt.Errorf("could not open file: %w", err)
+	}
+	defer file.Close()
+	// parse yaml
+	var config Config
+	if err = yaml.NewDecoder(file).Decode(&config); err != nil {
+		return fmt.Errorf("could not decode yaml: %w", err)
+	}
+	if err = g.Invoker.Config(config); err != nil {
+		return fmt.Errorf("could not configure invoker: %w", err)
+	}
+	return nil
+}
+
 func (g *Game) Draw(screen *ebiten.Image) {
-	for _, system := range g.systems {
-		system.Draw(screen)
+	for _, r := range g.renderers {
+		if err := r.Draw(screen); err != nil {
+			g.logger.Error("could not draw", slog.String("error", err.Error()))
+		}
 	}
 }
 

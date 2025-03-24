@@ -10,7 +10,10 @@
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}/cmd/mygame/",
-            "envFile": "${workspaceFolder}/.env"
+            "envFile": "${workspaceFolder}/.env",
+            "args": [
+                "--config", "${workspaceFolder}/cmd/mygame/config.yaml"
+            ]
         },
     ]
 }

@@ -1,0 +1,1 @@
+- if config.yaml; has a field that not reconized, throw error :O

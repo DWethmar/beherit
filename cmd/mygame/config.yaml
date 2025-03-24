@@ -1,0 +1,16 @@
+triggers:
+  create.game:
+    - command: create.blueprint.entity
+      params:
+        entity_id: 9
+        components:
+          - position:
+              x$: 10 + 10
+              y: 10
+    - command: create.blueprint.entity
+      params:
+        entity_id: 2
+        components:
+          - position:
+              X: 10
+              Y: 10
