@@ -34,8 +34,8 @@ triggers:
             type: position
             entity$: pos.Entity
             data:
-              x$: "pressedLeft ? pos.Data.X - 1 : pressedRight ? pos.Data.X + 1 : pos.Data.X"
-              y$: "pressedUp ? pos.Data.Y - 1 : pressedDown ? pos.Data.Y + 1 : pos.Data.Y"
+              x$: "let left = pressedLeft ? 1 : 0; let right = pressedRight ? 1 : 0; pos.Data.X + right - left"
+              y$: "let up = pressedUp ? 1 : 0; let down = pressedDown ? 1 : 0; pos.Data.Y + down - up"
 
     - command: blueprint.update.entity
       include:
