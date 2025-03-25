@@ -3,11 +3,16 @@ package blueprint
 import (
 	"github.com/dwethmar/beherit/command"
 	"github.com/dwethmar/beherit/component"
+	"github.com/dwethmar/beherit/entity"
 )
 
 const (
 	CreateEntityCommandType = "blueprint.create.entity"
 	UpdateEntityCommandType = "blueprint.update.entity"
+)
+
+const (
+	RemoveComponentsCommandType = "blueprint.remove.components"
 )
 
 type CreateEntity struct {
@@ -33,5 +38,17 @@ func NewUpdateEntityCommand() *command.Command {
 		Data: &UpdateEntity{
 			Components: []*component.Component{},
 		},
+	}
+}
+
+type RemoveComponents struct {
+	Entity       entity.Entity
+	ComponentIDs []uint
+}
+
+func NewRemoveComponentsCommand() *command.Command {
+	return &command.Command{
+		Type: RemoveComponentsCommandType,
+		Data: &RemoveComponents{},
 	}
 }

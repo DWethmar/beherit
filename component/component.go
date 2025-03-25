@@ -48,8 +48,13 @@ func (cm *Manager) Add(c Component) error {
 	return nil
 }
 
-// Update updates a component.
+// Update updates a component data
 func (cm *Manager) Update(c Component) error {
+	// check if exists
+	_, err := cm.byType.Get(c.Type, c.ID)
+	if err != nil {
+		return err
+	}
 	if err := cm.byEntity.Update(&c); err != nil {
 		return err
 	}
@@ -66,6 +71,21 @@ func (cm *Manager) Get(componentType Type, id uint) (Component, error) {
 		return Component{}, err
 	}
 	return *c, nil
+}
+
+// GetByEntity gets all components of an entity.
+func (cm *Manager) ListByEntity(e entity.Entity, componentType Type) []Component {
+	l := cm.byEntity.List(e)
+	if len(l) == 0 {
+		return []Component{}
+	}
+	result := make([]Component, 0)
+	for _, c := range l {
+		if c.Type == componentType {
+			result = append(result, *c)
+		}
+	}
+	return result
 }
 
 // List gets all components of a type.

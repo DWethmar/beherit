@@ -49,7 +49,7 @@ func TestInvoker_Invoke(t *testing.T) {
 			calledHandler++
 			return nil
 		}))
-		invoker := beherit.NewInvoker(entityManager, commandBus, commandFactory, &MockEnv{})
+		invoker := beherit.NewInvoker(slog.Default(), entityManager, commandBus, commandFactory, &MockEnv{})
 		invoker.Config(
 			beherit.Config{
 				Triggers: map[string][]*beherit.TriggerCommand{
@@ -89,7 +89,7 @@ func TestInvoker_Invoke(t *testing.T) {
 			},
 		)
 
-		if err := invoker.Invoke(beherit.GameCreatedTrigger); err != nil {
+		if err := invoker.Invoke(beherit.GameCreatedTrigger, map[string]any{}); err != nil {
 			t.Error(err)
 		}
 

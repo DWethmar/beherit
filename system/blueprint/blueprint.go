@@ -17,13 +17,20 @@ type System struct {
 	cm     *component.Manager
 }
 
-func New(logger *slog.Logger, em *entity.Manager, cf *component.Factory, cm *component.Manager) *System {
+func New(logger *slog.Logger, cf *component.Factory, cm *component.Manager) *System {
 	return &System{
 		logger: logger,
-		em:     em,
 		cf:     cf,
 		cm:     cm,
 	}
+}
+
+func (s *System) Attach(commandFactory *command.Factory, commandBus *command.Bus) {
+	commandFactory.Register(NewCreateEntityCommand)
+	commandFactory.Register(NewUpdateEntityCommand)
+	commandFactory.Register(NewRemoveComponentsCommand)
+	commandBus.RegisterHandler(NewCreateEntityCommand(), s)
+	commandBus.RegisterHandler(NewUpdateEntityCommand(), s)
 }
 
 func (s *System) Handle(c *command.Command) error {

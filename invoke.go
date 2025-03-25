@@ -3,6 +3,10 @@ package beherit
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
+	"sync"
+
+	"maps"
 
 	"github.com/dwethmar/beherit/command"
 	"github.com/dwethmar/beherit/entity"
@@ -27,6 +31,8 @@ type Env interface {
 }
 
 type Invoker struct {
+	logger         *slog.Logger
+	configMux      sync.RWMutex
 	config         *Config
 	entityManager  *entity.Manager
 	commandBus     *command.Bus
@@ -35,8 +41,10 @@ type Invoker struct {
 	ec             *ExpressionCompiler
 }
 
-func NewInvoker(entityManager *entity.Manager, commandBus *command.Bus, commandFactory *command.Factory, env Env) *Invoker {
+func NewInvoker(logger *slog.Logger, entityManager *entity.Manager, commandBus *command.Bus, commandFactory *command.Factory, env Env) *Invoker {
 	return &Invoker{
+		logger:         logger,
+		configMux:      sync.RWMutex{},
 		config:         nil,
 		entityManager:  entityManager,
 		commandBus:     commandBus,
@@ -47,6 +55,8 @@ func NewInvoker(entityManager *entity.Manager, commandBus *command.Bus, commandF
 }
 
 func (i *Invoker) Config(config Config) error {
+	i.configMux.Lock()
+	defer i.configMux.Unlock()
 	i.config = &config
 	for _, triggers := range config.Triggers {
 		for _, trigger := range triggers {
@@ -74,25 +84,23 @@ func (i *Invoker) Config(config Config) error {
 	return nil
 }
 
-func (i *Invoker) Invoke(t string) error {
+func (i *Invoker) Invoke(t string, globalEnv map[string]any) error {
+	i.configMux.RLock()
+	defer i.configMux.RUnlock()
 	triggers, ok := i.config.Triggers[t]
 	if !ok {
 		return nil
 	}
 	for _, c := range triggers {
 		env := i.env.Create()
-
+		maps.Copy(env, globalEnv)
 		if c.Include != nil {
 			include, err := i.ec.Run(c.Include, env)
 			if err != nil {
 				return fmt.Errorf("could not run expression: %w", err)
 			}
-			// Include env
-			for k, v := range include {
-				env[k] = v
-			}
+			maps.Copy(env, include)
 		}
-
 		if c.conditionPr != nil {
 			cond, err := expr.Run(c.conditionPr, env)
 			if err != nil {
@@ -106,6 +114,8 @@ func (i *Invoker) Invoke(t string) error {
 				continue
 			}
 		}
+		i.logger.Debug("invoking command", slog.String("command", c.Command))
+
 		params, err := i.ec.Run(c.Params, env)
 		if err != nil {
 			return fmt.Errorf("could not run expression: %w", err)

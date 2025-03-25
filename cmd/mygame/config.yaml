@@ -9,12 +9,20 @@ triggers:
             data:
               x$: 10 + 10
               y: 10
+  
     - command: blueprint.create.entity
       condition:
+      include:
+        entity$: CreateEntity()
       params:
         components:
           - type: position
-            entity$: CreateEntity()
+            entity$: entity
+            data:
+              x: 50
+              y: 50
+          - type: follow
+            entity$: entity
             data:
               x: 50
               y: 50
@@ -27,7 +35,7 @@ triggers:
         pressedLeft$: KeyPressed('left') || KeyPressed('a')
         pressedRight$: KeyPressed('right') || KeyPressed('d')
         pos$: first(ListComponents('position'))
-      condition: pressedUp || pressedDown || pressedLeft || pressedRight
+      condition: pos != nil && (pressedUp || pressedDown || pressedLeft || pressedRight)
       params:
         components:
           - id$: pos.ID
@@ -37,15 +45,19 @@ triggers:
               x$: "let left = pressedLeft ? 1 : 0; let right = pressedRight ? 1 : 0; pos.Data.X + right - left"
               y$: "let up = pressedUp ? 1 : 0; let down = pressedDown ? 1 : 0; pos.Data.Y + down - up"
 
-    - command: blueprint.update.entity
+    - command: follow.move-towards-target
       include:
-        pos$: last(ListComponents('position'))
-      condition: pos.Data.X < 600
+        entities$: map(ListComponents('follow'), {.Entity})
+      condition: len(entities) > 0
       params:
-        components:
-          - id$: pos.ID
-            type: position
-            entity$: pos.Entity
-            data:
-              x$: pos.Data.X + 1
-              y$: "pos.Data.Y < 200 ? pos.Data.Y + 1 : pos.Data.Y"
+        entities$: entities
+
+  game.input.cursor:
+    - command: follow.set-target
+      include:
+        entities$: map(ListComponents('follow'), {.Entity})
+      condition: len(entities) > 0
+      params:
+        entities$: entities
+        X$: cursor.X
+        Y$: cursor.Y

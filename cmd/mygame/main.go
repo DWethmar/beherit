@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log/slog"
+	"os"
 
 	"github.com/dwethmar/beherit"
 	"github.com/dwethmar/beherit/command"
@@ -10,6 +12,7 @@ import (
 	"github.com/dwethmar/beherit/entity"
 	"github.com/dwethmar/beherit/render"
 	"github.com/dwethmar/beherit/system/blueprint"
+	"github.com/dwethmar/beherit/system/follow"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
@@ -41,43 +44,44 @@ func (e *env) Create() map[string]any {
 }
 
 func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	flag.Parse()
-	logger := slog.Default()
+	logHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	})
+	logger := slog.New(logHandler)
 
-	logger.Info("loading spritesheets")
-	// sheet, err := sprite.NewSpritesheet()
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// sprites := sprite.Load(sheet)
-	// eventBus := event.NewBus()
 	em := entity.NewManager(1)
 	cm := component.NewManager(1)
 	cf := component.NewFactory()
 	cf.Register(component.NewGraphicComponent)
 	cf.Register(component.NewPositionComponent)
+	cf.Register(component.NewFollowComponent)
 
 	commandBus := command.NewBus(logger)
 	commandFactory := command.NewFactory()
 
-	commandFactory.Register(blueprint.NewCreateEntityCommand)
-	commandFactory.Register(blueprint.NewUpdateEntityCommand)
+	blueprintSystem := blueprint.New(logger, cf, cm)
+	blueprintSystem.Attach(commandFactory, commandBus)
 
-	blueprintSystem := blueprint.New(logger, em, cf, cm)
-	commandBus.RegisterHandler(blueprint.NewCreateEntityCommand(), blueprintSystem)
-	commandBus.RegisterHandler(blueprint.NewUpdateEntityCommand(), blueprintSystem)
+	followSystem := follow.New(logger, cf, cm)
+	followSystem.Attach(commandFactory, commandBus)
 
-	if err := beherit.NewGame(beherit.Options{
+	g := beherit.NewGame(beherit.Options{
 		Logger:     logger,
 		ConfigFile: *configFileFlag,
-		Invoker: beherit.NewInvoker(em, commandBus, commandFactory, &env{
+		Invoker: beherit.NewInvoker(logger, em, commandBus, commandFactory, &env{
 			logger:           logger,
 			entityManager:    em,
 			componentManager: cm,
 		}),
 		Renderer: []beherit.Renderer{render.NewRenderer(cm)},
-	}).Run(); err != nil {
+	})
+
+	go g.WatchConfig(ctx)
+
+	if err := g.Run(); err != nil {
 		panic(err)
 	}
 }
