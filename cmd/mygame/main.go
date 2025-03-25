@@ -5,6 +5,7 @@ import (
 	"flag"
 	"log/slog"
 	"os"
+	"regexp"
 
 	"github.com/dwethmar/beherit"
 	"github.com/dwethmar/beherit/command"
@@ -17,6 +18,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
+var MatchByEndingDollarRegex = regexp.MustCompile(`\$$`)
 var configFileFlag = flag.String("config", "config.yaml", "config file")
 
 type env struct {
@@ -68,15 +70,22 @@ func main() {
 	followSystem := follow.New(logger, cf, cm)
 	followSystem.Attach(commandFactory, commandBus)
 
+	invoker := beherit.NewInvoker(beherit.InvokerOptions{
+		Logger:         logger,
+		EntityManager:  em,
+		CommandBus:     commandBus,
+		CommandFactory: commandFactory,
+		Env:            &env{logger: logger, entityManager: em, componentManager: cm},
+		ExprComp: beherit.NewExpressionCompiler(&beherit.RegexExprMatcher{
+			KeyRegex: MatchByEndingDollarRegex,
+		}),
+	})
+
 	g := beherit.NewGame(beherit.Options{
 		Logger:     logger,
 		ConfigFile: *configFileFlag,
-		Invoker: beherit.NewInvoker(logger, em, commandBus, commandFactory, &env{
-			logger:           logger,
-			entityManager:    em,
-			componentManager: cm,
-		}),
-		Renderer: []beherit.Renderer{render.NewRenderer(cm)},
+		Invoker:    invoker,
+		Renderer:   []beherit.Renderer{render.NewRenderer(cm)},
 	})
 
 	go g.WatchConfig(ctx)

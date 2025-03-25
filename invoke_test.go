@@ -26,9 +26,11 @@ type MockEnv struct {
 }
 
 func (e MockEnv) Create() map[string]any {
-	e.nextId++
 	return map[string]any{
-		"EntityID": 1,
+		"CreateEntity": func() entity.Entity {
+			e.nextId++
+			return entity.Entity(e.nextId)
+		},
 	}
 }
 
@@ -49,7 +51,16 @@ func TestInvoker_Invoke(t *testing.T) {
 			calledHandler++
 			return nil
 		}))
-		invoker := beherit.NewInvoker(slog.Default(), entityManager, commandBus, commandFactory, &MockEnv{})
+		invoker := beherit.NewInvoker(beherit.InvokerOptions{
+			Logger:         slog.Default(),
+			EntityManager:  entityManager,
+			CommandBus:     commandBus,
+			CommandFactory: commandFactory,
+			Env:            MockEnv{},
+			ExprComp: beherit.NewExpressionCompiler(&beherit.RegexExprMatcher{
+				KeyRegex: MatchByEndingDollarRegex,
+			}),
+		})
 		invoker.Config(
 			beherit.Config{
 				Triggers: map[string][]*beherit.TriggerCommand{

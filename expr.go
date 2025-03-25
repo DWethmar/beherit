@@ -7,12 +7,18 @@ import (
 	"github.com/expr-lang/expr/vm"
 )
 
+type ExprMatcher interface {
+	Match(key string) bool
+}
+
 type ExpressionCompiler struct {
+	matcher  ExprMatcher
 	programs map[string]*vm.Program
 }
 
-func NewExpressionCompiler() *ExpressionCompiler {
+func NewExpressionCompiler(m ExprMatcher) *ExpressionCompiler {
 	return &ExpressionCompiler{
+		matcher:  m,
 		programs: make(map[string]*vm.Program),
 	}
 }
@@ -55,7 +61,7 @@ func (ec *ExpressionCompiler) CompileMap(params map[string]any) (map[string]any,
 			}
 			result[key] = r
 		case string: // check if string is an expression
-			if key[len(key)-1] != '$' {
+			if !ec.matcher.Match(key) {
 				result[key] = v
 				continue
 			}

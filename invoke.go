@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"regexp"
 	"sync"
 
 	"maps"
@@ -13,6 +14,14 @@ import (
 	"github.com/expr-lang/expr"
 	"github.com/expr-lang/expr/vm"
 )
+
+type RegexExprMatcher struct {
+	KeyRegex *regexp.Regexp
+}
+
+func (m RegexExprMatcher) Match(key string) bool {
+	return m.KeyRegex.MatchString(key)
+}
 
 type TriggerCommand struct {
 	Command     string         `yaml:"command"`
@@ -41,16 +50,25 @@ type Invoker struct {
 	ec             *ExpressionCompiler
 }
 
-func NewInvoker(logger *slog.Logger, entityManager *entity.Manager, commandBus *command.Bus, commandFactory *command.Factory, env Env) *Invoker {
+type InvokerOptions struct {
+	Logger         *slog.Logger
+	EntityManager  *entity.Manager
+	CommandBus     *command.Bus
+	CommandFactory *command.Factory
+	Env            Env
+	ExprComp       *ExpressionCompiler
+}
+
+func NewInvoker(opt InvokerOptions) *Invoker {
 	return &Invoker{
-		logger:         logger,
+		logger:         opt.Logger,
 		configMux:      sync.RWMutex{},
 		config:         nil,
-		entityManager:  entityManager,
-		commandBus:     commandBus,
-		commandFactory: commandFactory,
-		env:            env,
-		ec:             NewExpressionCompiler(),
+		entityManager:  opt.EntityManager,
+		commandBus:     opt.CommandBus,
+		commandFactory: opt.CommandFactory,
+		env:            opt.Env,
+		ec:             opt.ExprComp,
 	}
 }
 

@@ -1,6 +1,7 @@
 package beherit_test
 
 import (
+	"regexp"
 	"testing"
 
 	"github.com/dwethmar/beherit"
@@ -8,9 +9,13 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
+var MatchByEndingDollarRegex = regexp.MustCompile(`\$$`)
+
 func TestCompileMapExpressions(t *testing.T) {
 	t.Run("compile param expressions", func(t *testing.T) {
-		ec := beherit.NewExpressionCompiler()
+		ec := beherit.NewExpressionCompiler(&beherit.RegexExprMatcher{
+			KeyRegex: MatchByEndingDollarRegex,
+		})
 		p, err := ec.Compile("1 + 1")
 		if err != nil {
 			t.Error(err)
@@ -28,7 +33,9 @@ func TestCompileMapExpressions(t *testing.T) {
 		}
 	})
 	t.Run("compile param expressions", func(t *testing.T) {
-		ec := beherit.NewExpressionCompiler()
+		ec := beherit.NewExpressionCompiler(&beherit.RegexExprMatcher{
+			KeyRegex: MatchByEndingDollarRegex,
+		})
 		programs := map[string]any{
 			"Position": map[string]any{
 				"X$": `let x = 1; 1 + 1 + x`,
@@ -73,7 +80,9 @@ func TestCompileMapExpressions(t *testing.T) {
 
 func TestRunParamExpressions(t *testing.T) {
 	t.Run("run param expressions", func(t *testing.T) {
-		ec := beherit.NewExpressionCompiler()
+		ec := beherit.NewExpressionCompiler(&beherit.RegexExprMatcher{
+			KeyRegex: MatchByEndingDollarRegex,
+		})
 		params := map[string]any{
 			"Component": map[string]any{
 				"Position": map[string]any{
@@ -114,7 +123,9 @@ func TestRunParamExpressions(t *testing.T) {
 	})
 
 	t.Run("run param expressions with nested expressions", func(t *testing.T) {
-		ec := beherit.NewExpressionCompiler()
+		ec := beherit.NewExpressionCompiler(&beherit.RegexExprMatcher{
+			KeyRegex: MatchByEndingDollarRegex,
+		})
 		params := map[string]any{
 			"Component": map[string]any{
 				"Position": map[string]any{
