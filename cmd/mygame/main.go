@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log/slog"
 	"os"
 	"regexp"
@@ -11,9 +12,9 @@ import (
 	"github.com/dwethmar/beherit/command"
 	"github.com/dwethmar/beherit/component"
 	"github.com/dwethmar/beherit/entity"
-	"github.com/dwethmar/beherit/render"
 	"github.com/dwethmar/beherit/system/blueprint"
 	"github.com/dwethmar/beherit/system/follow"
+	"github.com/dwethmar/beherit/system/render"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
@@ -46,13 +47,19 @@ func (e *env) Create() map[string]any {
 }
 
 func main() {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 	flag.Parse()
 	logHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
 	})
 	logger := slog.New(logHandler)
+	if err := run(context.Background(), logger); err != nil {
+		panic(err)
+	}
+}
+
+func run(ctx context.Context, logger *slog.Logger) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
 	em := entity.NewManager(1)
 	cm := component.NewManager(1)
@@ -70,6 +77,9 @@ func main() {
 	followSystem := follow.New(logger, cf, cm)
 	followSystem.Attach(commandFactory, commandBus)
 
+	renderSystem := render.New(logger, cm)
+	renderSystem.Attach(commandFactory, commandBus)
+
 	invoker := beherit.NewInvoker(beherit.InvokerOptions{
 		Logger:         logger,
 		EntityManager:  em,
@@ -85,12 +95,13 @@ func main() {
 		Logger:     logger,
 		ConfigFile: *configFileFlag,
 		Invoker:    invoker,
-		Renderer:   []beherit.Renderer{render.NewRenderer(cm)},
 	})
 
 	go g.WatchConfig(ctx)
 
 	if err := g.Run(); err != nil {
-		panic(err)
+		return fmt.Errorf("could not run game: %w", err)
 	}
+
+	return nil
 }

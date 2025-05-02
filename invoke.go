@@ -1,7 +1,7 @@
 package beherit
 
 import (
-	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"regexp"
@@ -11,6 +11,7 @@ import (
 
 	"github.com/dwethmar/beherit/command"
 	"github.com/dwethmar/beherit/entity"
+	"github.com/dwethmar/beherit/mapstruct"
 	"github.com/expr-lang/expr"
 	"github.com/expr-lang/expr/vm"
 )
@@ -75,6 +76,9 @@ func NewInvoker(opt InvokerOptions) *Invoker {
 func (i *Invoker) Config(config Config) error {
 	i.configMux.Lock()
 	defer i.configMux.Unlock()
+	if config.Triggers == nil {
+		return errors.New("provided configuration has nil triggers")
+	}
 	i.config = &config
 	for _, triggers := range config.Triggers {
 		for _, trigger := range triggers {
@@ -115,14 +119,14 @@ func (i *Invoker) Invoke(t string, globalEnv map[string]any) error {
 		if c.Include != nil {
 			include, err := i.ec.Run(c.Include, env)
 			if err != nil {
-				return fmt.Errorf("could not run expression: %w", err)
+				return fmt.Errorf("could not run expression for command '%s': %w", c.Command, err)
 			}
 			maps.Copy(env, include)
 		}
 		if c.conditionPr != nil {
 			cond, err := expr.Run(c.conditionPr, env)
 			if err != nil {
-				return fmt.Errorf("could not run expression: %w", err)
+				return fmt.Errorf("could not run expression for command '%s': %w", c.Command, err)
 			}
 			r, ok := cond.(bool)
 			if !ok {
@@ -136,21 +140,18 @@ func (i *Invoker) Invoke(t string, globalEnv map[string]any) error {
 
 		params, err := i.ec.Run(c.Params, env)
 		if err != nil {
-			return fmt.Errorf("could not run expression: %w", err)
+			return fmt.Errorf("could not run expression for command '%s': %w", c.Command, err)
 		}
-		// Convert map to JSON
-		jsonData, err := json.Marshal(params)
-		if err != nil {
-			return fmt.Errorf("could not marshal params: %w", err)
-		}
+
 		command, err := i.commandFactory.Create(c.Command)
 		if err != nil {
 			return fmt.Errorf("could not create command: %w", err)
 		}
-		// Convert JSON to struct
-		if err = json.Unmarshal(jsonData, command.Data); err != nil {
-			return fmt.Errorf("could not unmarshal params: %w", err)
+
+		if err = mapstruct.To(params, command.Data); err != nil {
+			return fmt.Errorf("could not map params to command '%s': %w", c.Command, err)
 		}
+
 		if err = i.commandBus.Emit(command); err != nil {
 			return err
 		}

@@ -13,7 +13,7 @@ type ExprMatcher interface {
 
 type ExpressionCompiler struct {
 	matcher  ExprMatcher
-	programs map[string]*vm.Program
+	programs map[string]*vm.Program // cache of compiled expressions
 }
 
 func NewExpressionCompiler(m ExprMatcher) *ExpressionCompiler {
@@ -35,6 +35,7 @@ func (ec *ExpressionCompiler) Compile(s string) (*vm.Program, error) {
 	return program, nil
 }
 
+// CompileMap compiles a map of parameters, where keys are strings and values can be any type.
 func (ec *ExpressionCompiler) CompileMap(params map[string]any) (map[string]any, error) {
 	result := make(map[string]any)
 	for key, value := range params {

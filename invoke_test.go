@@ -35,6 +35,10 @@ func (e MockEnv) Create() map[string]any {
 }
 
 func TestInvoker_Invoke(t *testing.T) {
+	type MockCommand struct {
+		EntityID   entity.Entity
+		Components []map[string]interface{}
+	}
 	t.Run("invoke", func(t *testing.T) {
 		entityManager := entity.NewManager(1)
 		calledHandler := 0

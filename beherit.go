@@ -19,8 +19,9 @@ const (
 
 const (
 	GameCreatedTrigger string = "game.created"
-	UpdateTrigger      string = "game.updated"
+	GameUpdateTrigger  string = "game.updated"
 	GameInputCursor    string = "game.input.cursor"
+	GameDraw           string = "game.draw"
 )
 
 type GameState uint
@@ -32,23 +33,17 @@ const (
 	GameStateStopped
 )
 
-type Renderer interface {
-	Draw(screen *ebiten.Image) error
-}
-
 type Game struct {
 	logger     *slog.Logger
 	configFile string
 	state      GameState
 	Invoker    *Invoker
-	renderers  []Renderer
 }
 
 type Options struct {
 	Logger     *slog.Logger
 	ConfigFile string
 	Invoker    *Invoker
-	Renderer   []Renderer
 }
 
 func NewGame(opts Options) *Game {
@@ -57,7 +52,6 @@ func NewGame(opts Options) *Game {
 		configFile: opts.ConfigFile,
 		state:      GameStateInitializing,
 		Invoker:    opts.Invoker,
-		renderers:  opts.Renderer,
 	}
 }
 
@@ -71,7 +65,6 @@ func (g *Game) Update() error {
 	globalEnv := map[string]any{
 		"cursor": Cursor{X: x, Y: y},
 	}
-
 	switch g.state {
 	case GameStateInitializing:
 		if err := g.loadConfig(); err != nil {
@@ -87,8 +80,8 @@ func (g *Game) Update() error {
 				return fmt.Errorf("could not invoke %s trigger: %w", GameInputCursor, err)
 			}
 		}
-		if err := g.Invoker.Invoke(UpdateTrigger, map[string]any{}); err != nil {
-			return fmt.Errorf("could not invoke %s trigger: %w", UpdateTrigger, err)
+		if err := g.Invoker.Invoke(GameUpdateTrigger, map[string]any{}); err != nil {
+			return fmt.Errorf("could not invoke %s trigger: %w", GameUpdateTrigger, err)
 		}
 	case GameStatePaused:
 	case GameStateStopped:
@@ -136,10 +129,11 @@ func (g *Game) loadConfig() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	for _, r := range g.renderers {
-		if err := r.Draw(screen); err != nil {
-			g.logger.Error("could not draw", slog.String("error", err.Error()))
-		}
+	env := map[string]any{
+		"screen": screen,
+	}
+	if err := g.Invoker.Invoke(GameDraw, env); err != nil {
+		g.logger.Error("could not invoke draw trigger", slog.String("error", err.Error()))
 	}
 }
 
