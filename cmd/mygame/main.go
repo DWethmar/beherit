@@ -104,7 +104,7 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	skeletonDeathSprites := sprite.LoadSkeletonDeath(ebiten.NewImageFromImage(skeletonDeathImg))
 	skeletonMoveSprites := sprite.LoadSkeletonMove(ebiten.NewImageFromImage(skeletonMoveImg))
 
-	var sprites map[uint]*sprite.Sprite = make(map[uint]*sprite.Sprite)
+	var sprites map[string]*sprite.Sprite = make(map[string]*sprite.Sprite)
 	maps.Copy(sprites, skeletonDeathSprites)
 	maps.Copy(sprites, skeletonMoveSprites)
 

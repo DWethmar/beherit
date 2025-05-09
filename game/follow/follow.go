@@ -37,7 +37,7 @@ func (s *System) Handle(c *command.Command) error {
 }
 
 func (s *System) Target(cmd *game.SetTarget) error {
-	s.logger.Info("follow", slog.Int("x", cmd.X), slog.Int("y", cmd.Y), slog.Any("entity", cmd.Entities))
+	// s.logger.Info("follow", slog.Int("x", cmd.X), slog.Int("y", cmd.Y), slog.Any("entity", cmd.Entities))
 
 	for _, e := range cmd.Entities {
 		var f component.Component
@@ -64,7 +64,7 @@ func (s *System) Target(cmd *game.SetTarget) error {
 }
 
 func (s *System) MoveTowardsTarget(cmd *game.MoveTowardsTarget) error {
-	s.logger.Info("move towards target", slog.Any("entity", cmd.Entities))
+	// s.logger.Info("move towards target", slog.Any("entity", cmd.Entities))
 
 	for _, e := range cmd.Entities {
 		var f component.Component

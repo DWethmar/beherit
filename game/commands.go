@@ -80,7 +80,20 @@ func NewMoveTowardsTarget() *command.Command {
 	}
 }
 
-type RenderCommand struct {
+type RenderCheckerBoardCommand struct {
+	Screen *ebiten.Image `json:"screen"`
+}
+
+func NewRenderCheckerBoardCommand() *command.Command {
+	return &command.Command{
+		Type: RenderCommandType,
+		Data: &RenderCheckerBoardCommand{
+			Screen: nil,
+		},
+	}
+}
+
+type RenderComponentsCommand struct {
 	Screen     *ebiten.Image         `json:"screen"`
 	Components []component.Component `json:"components"`
 }
@@ -88,7 +101,7 @@ type RenderCommand struct {
 func NewRenderCommand() *command.Command {
 	return &command.Command{
 		Type: RenderCommandType,
-		Data: &RenderCommand{
+		Data: &RenderComponentsCommand{
 			Screen:     nil,
 			Components: []component.Component{},
 		},

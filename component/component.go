@@ -73,7 +73,7 @@ func (cm *Manager) Get(componentType Type, id uint) (Component, error) {
 	return *c, nil
 }
 
-// GetByEntity gets all components of an entity.
+// ListByEntity gets all components of an entity.
 func (cm *Manager) ListByEntity(e entity.Entity, componentType Type) []Component {
 	l := cm.byEntity.List(e)
 	if len(l) == 0 {
@@ -86,6 +86,20 @@ func (cm *Manager) ListByEntity(e entity.Entity, componentType Type) []Component
 		}
 	}
 	return result
+}
+
+// ListByEntity gets all components of an entity.
+func (cm *Manager) FirstByEntity(e entity.Entity, componentType Type) (Component, bool) {
+	l := cm.byEntity.List(e)
+	if len(l) == 0 {
+		return Component{}, false
+	}
+	for _, c := range l {
+		if c.Type == componentType {
+			return *c, true
+		}
+	}
+	return Component{}, false
 }
 
 // List gets all components of a type.

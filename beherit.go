@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -34,8 +35,10 @@ const (
 )
 
 type Game struct {
+	mux        sync.RWMutex
 	logger     *slog.Logger
 	configFile string
+	Config     *Config
 	state      GameState
 	Invoker    *Invoker
 }
@@ -61,15 +64,16 @@ type Cursor struct {
 }
 
 func (g *Game) Update() error {
+	g.mux.RLock()
+	defer g.mux.RUnlock()
+
 	x, y := ebiten.CursorPosition()
 	globalEnv := map[string]any{
-		"cursor": Cursor{X: x, Y: y},
+		"cursor":     Cursor{X: x, Y: y},
+		"blueprints": g.Config.Blueprints,
 	}
 	switch g.state {
 	case GameStateInitializing:
-		if err := g.loadConfig(); err != nil {
-			return err
-		}
 		if err := g.Invoker.Invoke(GameCreatedTrigger, globalEnv); err != nil {
 			return fmt.Errorf("could not invoke %s trigger: %w", GameCreatedTrigger, err)
 		}
@@ -89,7 +93,7 @@ func (g *Game) Update() error {
 	return nil
 }
 
-func (g *Game) WatchConfig(ctx context.Context) error {
+func (g *Game) WatchConfig(ctx context.Context) {
 	lastModTime := time.Now()
 	for {
 		select {
@@ -102,16 +106,19 @@ func (g *Game) WatchConfig(ctx context.Context) error {
 			if info.ModTime().After(lastModTime) {
 				lastModTime = info.ModTime()
 				if err := g.loadConfig(); err != nil {
-					return fmt.Errorf("could not load config: %w", err)
+					g.logger.Error("could not load config", slog.String("file", g.configFile), slog.String("error", err.Error()))
+					continue
 				}
 			}
 		case <-ctx.Done():
-			return ctx.Err()
+			return
 		}
 	}
 }
 
 func (g *Game) loadConfig() error {
+	g.mux.Lock()
+	defer g.mux.Unlock()
 	file, err := os.Open(g.configFile)
 	if err != nil {
 		return fmt.Errorf("could not open file: %w", err)
@@ -121,10 +128,10 @@ func (g *Game) loadConfig() error {
 	if err = yaml.NewDecoder(file).Decode(&config); err != nil {
 		return fmt.Errorf("could not decode yaml: %w", err)
 	}
-	if err = g.Invoker.Config(config); err != nil {
+	if err = g.Invoker.Configure(config.Triggers); err != nil {
 		return fmt.Errorf("could not configure invoker: %w", err)
 	}
-
+	g.Config = &config
 	return nil
 }
 
@@ -142,6 +149,9 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func (g *Game) Run() error {
+	if err := g.loadConfig(); err != nil {
+		return fmt.Errorf("could not load config: %w", err)
+	}
 	ebiten.SetWindowSize(windowWidth, windowHeight)
 	ebiten.SetWindowTitle("Beherit")
 	if err := ebiten.RunGame(g); err != nil {

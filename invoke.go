@@ -13,7 +13,6 @@ import (
 	"github.com/dwethmar/beherit/entity"
 	"github.com/dwethmar/beherit/mapstruct"
 	"github.com/expr-lang/expr"
-	"github.com/expr-lang/expr/vm"
 )
 
 type RegexExprMatcher struct {
@@ -24,18 +23,6 @@ func (m RegexExprMatcher) Match(key string) bool {
 	return m.KeyRegex.MatchString(key)
 }
 
-type TriggerCommand struct {
-	Command      string         `yaml:"command"`
-	Vars         map[string]any `yaml:"vars"`
-	ConditionStr string         `yaml:"condition"`
-	condition    *vm.Program    `yaml:"-"`
-	Params       map[string]any `yaml:"params"`
-}
-
-type Config struct {
-	Triggers map[string][]*TriggerCommand `yaml:"triggers"`
-}
-
 type Env interface {
 	Create() map[string]any
 }
@@ -43,7 +30,7 @@ type Env interface {
 type Invoker struct {
 	logger         *slog.Logger
 	configMux      sync.RWMutex
-	config         *Config
+	triggers       map[string][]*TriggerCommand
 	entityManager  *entity.Manager
 	commandBus     *command.Bus
 	commandFactory *command.Factory
@@ -64,7 +51,7 @@ func NewInvoker(opt InvokerOptions) *Invoker {
 	return &Invoker{
 		logger:         opt.Logger,
 		configMux:      sync.RWMutex{},
-		config:         nil,
+		triggers:       make(map[string][]*TriggerCommand),
 		entityManager:  opt.EntityManager,
 		commandBus:     opt.CommandBus,
 		commandFactory: opt.CommandFactory,
@@ -73,14 +60,14 @@ func NewInvoker(opt InvokerOptions) *Invoker {
 	}
 }
 
-func (i *Invoker) Config(config Config) error {
+func (i *Invoker) Configure(triggers map[string][]*TriggerCommand) error {
 	i.configMux.Lock()
 	defer i.configMux.Unlock()
-	if config.Triggers == nil {
-		return errors.New("provided configuration has nil triggers")
+	if triggers == nil {
+		return errors.New("triggers cannot be nil")
 	}
-	i.config = &config
-	for _, triggers := range config.Triggers {
+	i.triggers = triggers
+	for _, triggers := range triggers {
 		for _, trigger := range triggers {
 			in, err := i.ec.CompileMap(trigger.Vars)
 			if err != nil {
@@ -109,7 +96,7 @@ func (i *Invoker) Config(config Config) error {
 func (i *Invoker) Invoke(t string, globalEnv map[string]any) error {
 	i.configMux.RLock()
 	defer i.configMux.RUnlock()
-	triggers, ok := i.config.Triggers[t]
+	triggers, ok := i.triggers[t]
 	if !ok {
 		return nil
 	}
@@ -123,19 +110,19 @@ func (i *Invoker) Invoke(t string, globalEnv map[string]any) error {
 	return nil
 }
 
-func (i *Invoker) trigger(c *TriggerCommand, env map[string]any) error {
-	lEnv := map[string]any{} // local env
-	maps.Copy(lEnv, env)
+func (i *Invoker) trigger(c *TriggerCommand, globalEnv map[string]any) error {
+	localEnv := map[string]any{}
+	maps.Copy(localEnv, globalEnv)
 	if c.Vars != nil {
-		vars, err := i.ec.Run(c.Vars, lEnv)
+		vars, err := i.ec.Run(c.Vars, localEnv)
 		if err != nil {
 			return fmt.Errorf("could not run expression for command '%s': %w", c.Command, err)
 		}
-		maps.Copy(lEnv, vars)
+		maps.Copy(localEnv, vars)
 	}
 	// check if condition is met
 	if c.condition != nil {
-		cond, err := expr.Run(c.condition, lEnv)
+		cond, err := expr.Run(c.condition, localEnv)
 		if err != nil {
 			return fmt.Errorf("could not run expression for command '%s': %w", c.Command, err)
 		}
@@ -148,7 +135,7 @@ func (i *Invoker) trigger(c *TriggerCommand, env map[string]any) error {
 		}
 	}
 
-	params, err := i.ec.Run(c.Params, lEnv)
+	params, err := i.ec.Run(c.Params, localEnv)
 	if err != nil {
 		return fmt.Errorf("could not run expression for command '%s': %w", c.Command, err)
 	}

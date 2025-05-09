@@ -2,10 +2,10 @@ package sprite_test
 
 import (
 	"image"
-	"reflect"
 	"testing"
 
 	"github.com/dwethmar/beherit/cmd/mygame/sprite"
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestCreateRectangleGrid(t *testing.T) {
@@ -53,8 +53,8 @@ func TestCreateRectangleGrid(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := sprite.CreateRectangleGrid(tt.args.columns, tt.args.rows, tt.args.width, tt.args.height)
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("CreateCells() = %v, want %v", got, tt.want)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("CreateRectangleGrid() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}

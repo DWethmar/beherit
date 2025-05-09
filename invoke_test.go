@@ -65,44 +65,40 @@ func TestInvoker_Invoke(t *testing.T) {
 				KeyRegex: MatchByEndingDollarRegex,
 			}),
 		})
-		invoker.Config(
-			beherit.Config{
-				Triggers: map[string][]*beherit.TriggerCommand{
-					beherit.GameCreatedTrigger: {
-						{
-							Command: "testcommand",
-							Params: map[string]any{
-								"EntityID$": "CreateEntity()",
-								"Components": []map[string]any{
-									{
-										"type": "position",
-										"params": map[string]any{
-											"X$": "1 + 2",
-											"Y":  2,
-										},
-									},
+		invoker.Configure(map[string][]*beherit.TriggerCommand{
+			beherit.GameCreatedTrigger: {
+				{
+					Command: "testcommand",
+					Params: map[string]any{
+						"EntityID$": "CreateEntity()",
+						"Components": []map[string]any{
+							{
+								"type": "position",
+								"params": map[string]any{
+									"X$": "1 + 2",
+									"Y":  2,
 								},
 							},
 						},
-						{
-							Command: "testcommand",
-							Params: map[string]any{
-								"EntityID": 1,
-								"Components": []map[string]any{
-									{
-										"type": "position",
-										"params": map[string]any{
-											"X": 1,
-											"Y": 2,
-										},
-									},
+					},
+				},
+				{
+					Command: "testcommand",
+					Params: map[string]any{
+						"EntityID": 1,
+						"Components": []map[string]any{
+							{
+								"type": "position",
+								"params": map[string]any{
+									"X": 1,
+									"Y": 2,
 								},
 							},
 						},
 					},
 				},
 			},
-		)
+		})
 
 		if err := invoker.Invoke(beherit.GameCreatedTrigger, map[string]any{}); err != nil {
 			t.Error(err)

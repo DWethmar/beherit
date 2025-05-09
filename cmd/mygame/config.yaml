@@ -1,3 +1,22 @@
+blueprints:
+  - name: skeleton
+    description: Skeleton
+    components:
+      - type: position
+        data:
+          x: 0
+          y: 0
+      - type: graphic
+        data:
+          name: "SkeletonMoveDown1"
+  - name: follow
+    description: follows the cursor
+    components:
+      - type: follow
+        data:
+          x: 0
+          y: 0
+
 triggers:
   game.created:
     - command: blueprint.create.entity
@@ -14,8 +33,7 @@ triggers:
           - type: graphic
             entity$: entity
             data:
-              x$: 10 + 10
-              y: 10
+              name: "SkeletonMoveDown1"
   
     - command: blueprint.create.entity
       condition:
@@ -31,8 +49,8 @@ triggers:
           - type: follow
             entity$: entity
             data:
-              x: 50
-              y: 50
+              x: 150
+              y: 150
 
   game.updated:
     - command: blueprint.update.entity

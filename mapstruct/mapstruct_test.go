@@ -14,28 +14,29 @@ func TestTo(t *testing.T) {
 		}
 
 		type TestStruct struct {
-			TypeInt       int
-			TypeUint      uint
-			TypeInt8      int8
-			TypeInt16     int16
-			TypeInt32     int32
-			TypeInt64     int64
-			TypeUint8     uint8
-			TypeUint16    uint16
-			TypeUint32    uint32
-			TypeUint64    uint64
-			TypeByte      byte
-			TypeRune      rune
-			TypeStr       string
-			TypeBool      bool
-			TypeFloat     float64
-			TypeFloat32   float32
-			TypeFloat64   float64
-			TypeAny       any
-			TypeSlice     []string
-			TypeMap       map[string]any
-			TypeStruct    Data
-			TypeStructPtr *Data
+			TypeInt            int
+			TypeUint           uint
+			TypeInt8           int8
+			TypeInt16          int16
+			TypeInt32          int32
+			TypeInt64          int64
+			TypeUint8          uint8
+			TypeUint16         uint16
+			TypeUint32         uint32
+			TypeUint64         uint64
+			TypeByte           byte
+			TypeRune           rune
+			TypeStr            string
+			TypeBool           bool
+			TypeFloat          float64
+			TypeFloat32        float32
+			TypeFloat64        float64
+			TypeAny            any
+			TypeSlice          []string
+			TypeMap            map[string]any
+			TypeStruct         Data
+			TypeStructPtr      *Data
+			TypeSliceMapToData []Data
 		}
 
 		m := map[string]any{
@@ -62,22 +63,37 @@ func TestTo(t *testing.T) {
 				"key1": "value1",
 				"key2": 42,
 			},
-			"TypeStruct": Data{
-				Name: "test",
-				SubData: []*Data{
-					{Name: "sub_test1"},
-					{Name: "sub_test2"},
+			"TypeStruct": map[string]any{
+				"name": "test",
+				"sub_data": []map[string]any{
+					{"name": "sub_test1"},
+					{"name": "sub_test2"},
 				},
 			},
-			"TypeStructPtr": &Data{
-				Name: "test_ptr",
-				SubData: []*Data{
-					{Name: "sub_test_ptr1"},
-					{Name: "sub_test_ptr2"},
+			"TypeStructPtr": map[string]any{
+				"name": "test_ptr",
+				"sub_data": []map[string]any{
+					{"name": "sub_test_ptr1"},
+					{"name": "sub_test_ptr2"},
+				},
+			},
+			"TypeSliceMapToData": []map[string]any{
+				{
+					"name": "test1",
+					"sub_data": []map[string]any{
+						{"name": "sub_test1"},
+						{"name": "sub_test2"},
+					},
+				},
+				{
+					"name": "test2",
+					"sub_data": []map[string]any{
+						{"name": "sub_test_ptr1"},
+						{"name": "sub_test_ptr2"},
+					},
 				},
 			},
 		}
-
 		expect := &TestStruct{
 			TypeInt:     1,
 			TypeUint:    uint(2),
@@ -114,6 +130,22 @@ func TestTo(t *testing.T) {
 				SubData: []*Data{
 					{Name: "sub_test_ptr1"},
 					{Name: "sub_test_ptr2"},
+				},
+			},
+			TypeSliceMapToData: []Data{
+				{
+					Name: "test1",
+					SubData: []*Data{
+						{Name: "sub_test1"},
+						{Name: "sub_test2"},
+					},
+				},
+				{
+					Name: "test2",
+					SubData: []*Data{
+						{Name: "sub_test_ptr1"},
+						{Name: "sub_test_ptr2"},
+					},
 				},
 			},
 		}

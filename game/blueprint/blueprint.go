@@ -1,7 +1,6 @@
 package blueprint
 
 import (
-	"encoding/json"
 	"fmt"
 	"log/slog"
 
@@ -9,6 +8,7 @@ import (
 	"github.com/dwethmar/beherit/component"
 	"github.com/dwethmar/beherit/entity"
 	"github.com/dwethmar/beherit/game"
+	"github.com/dwethmar/beherit/mapstruct"
 )
 
 type System struct {
@@ -39,44 +39,42 @@ func (s *System) Handle(c *command.Command) error {
 
 func (s *System) createEntity(cmd *game.CreateEntity) error {
 	for _, n := range cmd.Components {
-		c, err := s.cf.Create(component.Type(n.Type))
-		if err != nil {
-			return fmt.Errorf("create component: %w", err)
+		// check if data is an map. This happens if the command is from a trigger
+		if data, ok := n.Data.(map[string]any); ok {
+			c, err := s.cf.Create(n.Type)
+			if err != nil {
+				return fmt.Errorf("failed to create component of type %s: %w", n.Type, err)
+			}
+			if err := mapstruct.To(data, c.Data); err != nil {
+				return fmt.Errorf("failed to map data to component: %w", err)
+			}
+			n.Data = c.Data
 		}
-		b, err := json.Marshal(n.Data)
-		if err != nil {
-			return fmt.Errorf("marshal params: %w", err)
-		}
-		if err := json.Unmarshal(b, c.Data); err != nil {
-			return fmt.Errorf("unmarshal params: %w", err)
-		}
-		n.Data = c.Data
 		if err := s.cm.Add(*n); err != nil {
-			return fmt.Errorf("update component: %w", err)
+			return fmt.Errorf("failed to add component: %w", err)
 		}
-		s.logger.Info("created component", slog.Int("entity", int(c.Entity)), slog.String("type", string(c.Type)))
+		s.logger.Info("created component", slog.Int("entity", int(n.Entity)), slog.String("type", string(n.Type)))
 	}
 	return nil
 }
 
 func (s *System) updateEntity(cmd *game.UpdateEntity) error {
 	for _, n := range cmd.Components {
-		c, err := s.cf.Create(component.Type(n.Type))
-		if err != nil {
-			return fmt.Errorf("create component: %w", err)
+		c, ok := s.cm.FirstByEntity(n.Entity, n.Type)
+		if !ok {
+			return fmt.Errorf("could not find component %s for entity %d", n.Type, n.Entity)
 		}
-		b, err := json.Marshal(n.Data)
-		if err != nil {
-			return fmt.Errorf("marshal params: %w", err)
+		// check if data is an map. This happens if the command is from a trigger
+		if data, ok := n.Data.(map[string]any); ok {
+			if err := mapstruct.To(data, c.Data); err != nil {
+				return fmt.Errorf("failed to map data to component: %w", err)
+			}
+			n.Data = c.Data
 		}
-		if err := json.Unmarshal(b, c.Data); err != nil {
-			return fmt.Errorf("unmarshal params: %w", err)
-		}
-		n.Data = c.Data
 		if err := s.cm.Update(*n); err != nil {
-			return fmt.Errorf("update component: %w", err)
+			return fmt.Errorf("failed to update component: %w", err)
 		}
-		s.logger.Info("updated component", slog.Int("entity", int(c.Entity)), slog.String("type", string(c.Type)))
+		s.logger.Info("updated component", slog.Int("entity", int(n.Entity)), slog.String("type", string(n.Type)))
 	}
 	return nil
 }

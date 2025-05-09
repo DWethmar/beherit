@@ -3,7 +3,8 @@ package component
 const PositionType Type = "position"
 
 type Position struct {
-	X, Y int
+	X int `json:"x"`
+	Y int `json:"y"`
 }
 
 func NewPositionComponent() *Component {

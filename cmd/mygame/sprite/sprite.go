@@ -31,10 +31,10 @@ func bottomCenteredAlignedSprite(img *ebiten.Image) *Sprite {
 }
 
 // Load returns all the sprites used in the game.
-func LoadSkeletonDeath(i *ebiten.Image) map[uint]*Sprite {
+func LoadSkeletonDeath(i *ebiten.Image) map[string]*Sprite {
 	cells := CreateRectangleGrid(skeletonDeathCols, skeletonDeathRows, skeletonDeathWidth, skeletonDeathHeight)
 
-	return map[uint]*Sprite{
+	return map[string]*Sprite{
 		// Skeleton Death Sprites
 		SkeletonDeath1: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[0][0]))),
 		SkeletonDeath2: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[1][0]))),
@@ -46,10 +46,10 @@ func LoadSkeletonDeath(i *ebiten.Image) map[uint]*Sprite {
 }
 
 // Load returns all the sprites used in the game.
-func LoadSkeletonMove(i *ebiten.Image) map[uint]*Sprite {
+func LoadSkeletonMove(i *ebiten.Image) map[string]*Sprite {
 	cells := CreateRectangleGrid(skeletonMoveCols, skeletonMoveRows, skeletonMoveWidth, skeletonMoveHeight)
 
-	return map[uint]*Sprite{
+	return map[string]*Sprite{
 		// Skeleton Move Up Sprites
 		SkeletonMoveUp1: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[0][0]))),
 		SkeletonMoveUp2: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[1][0]))),
