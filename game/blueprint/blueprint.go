@@ -8,6 +8,7 @@ import (
 	"github.com/dwethmar/beherit/command"
 	"github.com/dwethmar/beherit/component"
 	"github.com/dwethmar/beherit/entity"
+	"github.com/dwethmar/beherit/game"
 )
 
 type System struct {
@@ -25,26 +26,18 @@ func New(logger *slog.Logger, cf *component.Factory, cm *component.Manager) *Sys
 	}
 }
 
-func (s *System) Attach(commandFactory *command.Factory, commandBus *command.Bus) {
-	commandFactory.Register(NewCreateEntityCommand)
-	commandFactory.Register(NewUpdateEntityCommand)
-	commandFactory.Register(NewRemoveComponentsCommand)
-	commandBus.RegisterHandler(NewCreateEntityCommand(), s)
-	commandBus.RegisterHandler(NewUpdateEntityCommand(), s)
-}
-
 func (s *System) Handle(c *command.Command) error {
 	switch c := c.Data.(type) {
-	case *CreateEntity:
+	case *game.CreateEntity:
 		return s.createEntity(c)
-	case *UpdateEntity:
+	case *game.UpdateEntity:
 		return s.updateEntity(c)
 	default:
 		return fmt.Errorf("unknown command: %T", c)
 	}
 }
 
-func (s *System) createEntity(cmd *CreateEntity) error {
+func (s *System) createEntity(cmd *game.CreateEntity) error {
 	for _, n := range cmd.Components {
 		c, err := s.cf.Create(component.Type(n.Type))
 		if err != nil {
@@ -66,7 +59,7 @@ func (s *System) createEntity(cmd *CreateEntity) error {
 	return nil
 }
 
-func (s *System) updateEntity(cmd *UpdateEntity) error {
+func (s *System) updateEntity(cmd *game.UpdateEntity) error {
 	for _, n := range cmd.Components {
 		c, err := s.cf.Create(component.Type(n.Type))
 		if err != nil {

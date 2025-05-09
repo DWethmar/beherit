@@ -7,6 +7,7 @@ import (
 	"github.com/dwethmar/beherit/command"
 	"github.com/dwethmar/beherit/component"
 	"github.com/dwethmar/beherit/entity"
+	"github.com/dwethmar/beherit/game"
 )
 
 type System struct {
@@ -24,25 +25,18 @@ func New(logger *slog.Logger, cf *component.Factory, cm *component.Manager) *Sys
 	}
 }
 
-func (s *System) Attach(commandFactory *command.Factory, commandBus *command.Bus) {
-	commandFactory.Register(NewSetTargetCommand)
-	commandFactory.Register(NewMoveTowardsTarget)
-	commandBus.RegisterHandler(NewSetTargetCommand(), s)
-	commandBus.RegisterHandler(NewMoveTowardsTarget(), s)
-}
-
 func (s *System) Handle(c *command.Command) error {
 	switch c := c.Data.(type) {
-	case *SetTarget:
+	case *game.SetTarget:
 		return s.Target(c)
-	case *MoveTowardsTarget:
+	case *game.MoveTowardsTarget:
 		return s.MoveTowardsTarget(c)
 	default:
 		return fmt.Errorf("unknown command: %T", c)
 	}
 }
 
-func (s *System) Target(cmd *SetTarget) error {
+func (s *System) Target(cmd *game.SetTarget) error {
 	s.logger.Info("follow", slog.Int("x", cmd.X), slog.Int("y", cmd.Y), slog.Any("entity", cmd.Entities))
 
 	for _, e := range cmd.Entities {
@@ -69,7 +63,7 @@ func (s *System) Target(cmd *SetTarget) error {
 	return nil
 }
 
-func (s *System) MoveTowardsTarget(cmd *MoveTowardsTarget) error {
+func (s *System) MoveTowardsTarget(cmd *game.MoveTowardsTarget) error {
 	s.logger.Info("move towards target", slog.Any("entity", cmd.Entities))
 
 	for _, e := range cmd.Entities {

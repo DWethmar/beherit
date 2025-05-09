@@ -6,15 +6,14 @@ import (
 	"reflect"
 )
 
-// To converts a map to a struct. The map keys should match the struct field names or their JSON tags.
 func To(m map[string]any, s any) error {
 	if m == nil {
-		return errors.New("map cannot be nil")
+		return errors.New("map cannot be nil: provided map is nil")
 	}
 
 	val := reflect.ValueOf(s)
 	if val.Kind() != reflect.Pointer || val.Elem().Kind() != reflect.Struct {
-		return fmt.Errorf("s must be a pointer to a struct")
+		return fmt.Errorf("invalid argument: expected pointer to a struct but got %v", val.Kind())
 	}
 
 	return mapToStruct(m, val.Elem())
@@ -23,7 +22,7 @@ func To(m map[string]any, s any) error {
 func mapToStruct(m map[string]any, valElem reflect.Value) error {
 	structType := valElem.Type()
 
-	for i := range structType.NumField() {
+	for i := 0; i < structType.NumField(); i++ {
 		field := structType.Field(i)
 
 		key := field.Tag.Get("json")
@@ -33,77 +32,71 @@ func mapToStruct(m map[string]any, valElem reflect.Value) error {
 
 		mapVal, ok := m[key]
 		if !ok || mapVal == nil {
-			continue // Skip if the key is not present in the map or the value is nil
+			continue
 		}
 
 		structField := valElem.Field(i)
 		if !structField.CanSet() {
-			return fmt.Errorf("cannot set field '%s' of type '%s'", field.Name, structField.Type())
+			continue
 		}
 
 		if err := setValue(structField, mapVal); err != nil {
-			return fmt.Errorf("error setting field '%s' of type '%s': %w", field.Name, structField.Type(), err)
+			return fmt.Errorf("error setting field '%s': %w", key, err)
 		}
 	}
-
 	return nil
 }
 
-func setValue(field reflect.Value, value any) error {
+func setValue(field reflect.Value, val any) error {
 	fieldType := field.Type()
-	valueReflect := reflect.ValueOf(value)
 
 	switch fieldType.Kind() {
 	case reflect.Ptr:
-		if valueReflect.Kind() == reflect.Map {
-			ptr := reflect.New(fieldType.Elem())
-			if err := mapToStruct(value.(map[string]any), ptr.Elem()); err != nil {
-				return err
-			}
-			field.Set(ptr)
-			return nil
-		} else if valueReflect.Type().AssignableTo(fieldType) {
-			field.Set(valueReflect)
-			return nil
-		} else if valueReflect.Type().ConvertibleTo(fieldType) {
-			field.Set(valueReflect.Convert(fieldType))
+		ptrValue := reflect.New(fieldType.Elem())
+		if reflect.TypeOf(val).Kind() == reflect.Ptr && reflect.TypeOf(val).AssignableTo(fieldType) {
+			field.Set(reflect.ValueOf(val))
 			return nil
 		}
-		return fmt.Errorf("cannot assign to pointer type '%s' from type '%s'", fieldType, valueReflect.Type())
-
+		if reflect.TypeOf(val).Kind() == reflect.Map {
+			if err := mapToStruct(val.(map[string]any), ptrValue.Elem()); err != nil {
+				return fmt.Errorf("failed to set pointer struct: %w", err)
+			}
+			field.Set(ptrValue)
+		}
 	case reflect.Struct:
-		if valueReflect.Kind() == reflect.Map {
-			return mapToStruct(value.(map[string]any), field)
+		if reflect.TypeOf(val).Kind() == reflect.Map {
+			return mapToStruct(val.(map[string]any), field)
+		} else if reflect.TypeOf(val).AssignableTo(fieldType) {
+			field.Set(reflect.ValueOf(val))
 		}
-		return fmt.Errorf("expected map for struct but got '%s'", valueReflect.Kind())
-
 	case reflect.Slice:
-		if valueReflect.Kind() != reflect.Slice {
-			return fmt.Errorf("expected slice but got '%s'", valueReflect.Kind())
+		if reflect.TypeOf(val).AssignableTo(fieldType) {
+			field.Set(reflect.ValueOf(val))
+			return nil
 		}
-
-		slice := reflect.MakeSlice(fieldType, valueReflect.Len(), valueReflect.Len())
-
-		for i := 0; i < valueReflect.Len(); i++ {
-			elemVal := valueReflect.Index(i).Interface()
-			elemField := slice.Index(i)
-
-			if err := setValue(elemField, elemVal); err != nil {
-				return fmt.Errorf("slice index %d: %w", i, err)
+		sliceVal, ok := val.([]interface{})
+		if !ok {
+			return fmt.Errorf("expected slice but got %T", val)
+		}
+		slice := reflect.MakeSlice(fieldType, len(sliceVal), len(sliceVal))
+		for i, item := range sliceVal {
+			if err := setValue(slice.Index(i), item); err != nil {
+				return fmt.Errorf("error setting slice index %d: %w", i, err)
 			}
 		}
-
 		field.Set(slice)
-		return nil
-
-	default:
-		if valueReflect.Type().AssignableTo(fieldType) {
-			field.Set(valueReflect)
-			return nil
-		} else if valueReflect.Type().ConvertibleTo(fieldType) {
-			field.Set(valueReflect.Convert(fieldType))
-			return nil
+	case reflect.String:
+		if strVal, ok := val.(string); ok {
+			field.SetString(strVal)
+		} else {
+			return fmt.Errorf("expected string but got %T", val)
 		}
-		return fmt.Errorf("cannot assign value of type '%s' to field of type '%s'", valueReflect.Type(), fieldType)
+	default:
+		if reflect.TypeOf(val).AssignableTo(fieldType) {
+			field.Set(reflect.ValueOf(val))
+		} else {
+			return fmt.Errorf("cannot set field '%s' of type '%s' with value of type '%T'", field.Type(), fieldType, val)
+		}
 	}
+	return nil
 }

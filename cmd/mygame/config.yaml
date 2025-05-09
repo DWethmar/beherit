@@ -2,17 +2,24 @@ triggers:
   game.created:
     - command: blueprint.create.entity
       condition:
+      vars:
+        entity$: CreateEntity()
       params:
         components:
           - type: position
-            entity$: CreateEntity()
+            entity$: entity
+            data:
+              x$: 10 + 10
+              y: 10
+          - type: graphic
+            entity$: entity
             data:
               x$: 10 + 10
               y: 10
   
     - command: blueprint.create.entity
       condition:
-      include:
+      vars:
         entity$: CreateEntity()
       params:
         components:
@@ -29,7 +36,7 @@ triggers:
 
   game.updated:
     - command: blueprint.update.entity
-      include:
+      vars:
         pressedUp$: KeyPressed('up') || KeyPressed('w')
         pressedDown$: KeyPressed('down') || KeyPressed('s')
         pressedLeft$: KeyPressed('left') || KeyPressed('a')
@@ -47,7 +54,7 @@ triggers:
               y$: "let up = pressedUp ? spd : 0; let down = pressedDown ? spd : 0; pos.Data.Y + down - up"
 
     - command: follow.move-towards-target
-      include:
+      vars:
         entities$: map(ListComponents('follow'), {.Entity})
       condition: len(entities) > 0
       params:
@@ -55,7 +62,7 @@ triggers:
 
   game.input.cursor:
     - command: follow.set-target
-      include:
+      vars:
         entities$: map(ListComponents('follow'), {.Entity})
       condition: len(entities) > 0
       params:
@@ -68,3 +75,4 @@ triggers:
       condition: true
       params:
         screen$: screen
+        components$: ListComponents('graphic')

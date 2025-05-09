@@ -9,7 +9,7 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "${workspaceFolder}/cmd/mygame/",
+            "program": "${workspaceFolder}/cmd/mygame",
             "envFile": "${workspaceFolder}/.env",
             "args": [
                 "--config", "${workspaceFolder}/cmd/mygame/config.yaml"

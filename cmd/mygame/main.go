@@ -9,12 +9,14 @@ import (
 	"regexp"
 
 	"github.com/dwethmar/beherit"
+	"github.com/dwethmar/beherit/cmd/mygame/sprite"
 	"github.com/dwethmar/beherit/command"
 	"github.com/dwethmar/beherit/component"
 	"github.com/dwethmar/beherit/entity"
-	"github.com/dwethmar/beherit/system/blueprint"
-	"github.com/dwethmar/beherit/system/follow"
-	"github.com/dwethmar/beherit/system/render"
+	"github.com/dwethmar/beherit/game"
+	"github.com/dwethmar/beherit/game/blueprint"
+	"github.com/dwethmar/beherit/game/follow"
+	"github.com/dwethmar/beherit/game/render"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
@@ -72,13 +74,26 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	commandFactory := command.NewFactory()
 
 	blueprintSystem := blueprint.New(logger, cf, cm)
-	blueprintSystem.Attach(commandFactory, commandBus)
+	commandFactory.Register(game.NewCreateEntityCommand)
+	commandFactory.Register(game.NewUpdateEntityCommand)
+	commandFactory.Register(game.NewRemoveComponentsCommand)
+	commandBus.RegisterHandler(game.NewCreateEntityCommand(), blueprintSystem)
+	commandBus.RegisterHandler(game.NewUpdateEntityCommand(), blueprintSystem)
 
 	followSystem := follow.New(logger, cf, cm)
-	followSystem.Attach(commandFactory, commandBus)
+	commandFactory.Register(game.NewSetTargetCommand)
+	commandFactory.Register(game.NewMoveTowardsTarget)
+	commandBus.RegisterHandler(game.NewSetTargetCommand(), followSystem)
+	commandBus.RegisterHandler(game.NewMoveTowardsTarget(), followSystem)
 
-	renderSystem := render.New(logger, cm)
-	renderSystem.Attach(commandFactory, commandBus)
+	sh, err := sprite.NewSpritesheet()
+	if err != nil {
+		return fmt.Errorf("failed to load spritesheet: %w", err)
+	}
+
+	renderSystem := render.New(logger, cm, sprite.Load(sh))
+	commandFactory.Register(game.NewRenderCommand)
+	commandBus.RegisterHandler(game.NewRenderCommand(), renderSystem)
 
 	invoker := beherit.NewInvoker(beherit.InvokerOptions{
 		Logger:         logger,

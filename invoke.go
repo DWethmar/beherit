@@ -25,11 +25,11 @@ func (m RegexExprMatcher) Match(key string) bool {
 }
 
 type TriggerCommand struct {
-	Command     string         `yaml:"command"`
-	Include     map[string]any `yaml:"include"`
-	Condition   string         `yaml:"condition"`
-	conditionPr *vm.Program    `yaml:"-"`
-	Params      map[string]any `yaml:"params"`
+	Command      string         `yaml:"command"`
+	Vars         map[string]any `yaml:"vars"`
+	ConditionStr string         `yaml:"condition"`
+	condition    *vm.Program    `yaml:"-"`
+	Params       map[string]any `yaml:"params"`
 }
 
 type Config struct {
@@ -82,18 +82,18 @@ func (i *Invoker) Config(config Config) error {
 	i.config = &config
 	for _, triggers := range config.Triggers {
 		for _, trigger := range triggers {
-			in, err := i.ec.CompileMap(trigger.Include)
+			in, err := i.ec.CompileMap(trigger.Vars)
 			if err != nil {
 				return fmt.Errorf("could not compile expression: %w", err)
 			}
-			trigger.Include = in
+			trigger.Vars = in
 
-			if trigger.Condition != "" {
-				cond, err := i.ec.Compile(trigger.Condition)
+			if trigger.ConditionStr != "" {
+				cond, err := i.ec.Compile(trigger.ConditionStr)
 				if err != nil {
 					return fmt.Errorf("could not compile expression: %w", err)
 				}
-				trigger.conditionPr = cond
+				trigger.condition = cond
 			}
 
 			p, err := i.ec.CompileMap(trigger.Params)
@@ -113,48 +113,57 @@ func (i *Invoker) Invoke(t string, globalEnv map[string]any) error {
 	if !ok {
 		return nil
 	}
+	env := i.env.Create()
+	maps.Copy(env, globalEnv)
 	for _, c := range triggers {
-		env := i.env.Create()
-		maps.Copy(env, globalEnv)
-		if c.Include != nil {
-			include, err := i.ec.Run(c.Include, env)
-			if err != nil {
-				return fmt.Errorf("could not run expression for command '%s': %w", c.Command, err)
-			}
-			maps.Copy(env, include)
+		if err := i.trigger(c, env); err != nil {
+			return err
 		}
-		if c.conditionPr != nil {
-			cond, err := expr.Run(c.conditionPr, env)
-			if err != nil {
-				return fmt.Errorf("could not run expression for command '%s': %w", c.Command, err)
-			}
-			r, ok := cond.(bool)
-			if !ok {
-				return fmt.Errorf("condition result must be a boolean")
-			}
-			if !r {
-				continue
-			}
-		}
-		i.logger.Debug("invoking command", slog.String("command", c.Command))
+	}
+	return nil
+}
 
-		params, err := i.ec.Run(c.Params, env)
+func (i *Invoker) trigger(c *TriggerCommand, env map[string]any) error {
+	lEnv := map[string]any{} // local env
+	maps.Copy(lEnv, env)
+	if c.Vars != nil {
+		vars, err := i.ec.Run(c.Vars, lEnv)
 		if err != nil {
 			return fmt.Errorf("could not run expression for command '%s': %w", c.Command, err)
 		}
-
-		command, err := i.commandFactory.Create(c.Command)
+		maps.Copy(lEnv, vars)
+	}
+	// check if condition is met
+	if c.condition != nil {
+		cond, err := expr.Run(c.condition, lEnv)
 		if err != nil {
-			return fmt.Errorf("could not create command: %w", err)
+			return fmt.Errorf("could not run expression for command '%s': %w", c.Command, err)
 		}
+		r, ok := cond.(bool)
+		if !ok {
+			return fmt.Errorf("condition result must be a boolean")
+		}
+		if !r {
+			return nil
+		}
+	}
 
-		if err = mapstruct.To(params, command.Data); err != nil {
-			return fmt.Errorf("could not map params to command '%s': %w", c.Command, err)
-		}
+	params, err := i.ec.Run(c.Params, lEnv)
+	if err != nil {
+		return fmt.Errorf("could not run expression for command '%s': %w", c.Command, err)
+	}
 
-		if err = i.commandBus.Emit(command); err != nil {
-			return err
-		}
+	command, err := i.commandFactory.Create(c.Command)
+	if err != nil {
+		return fmt.Errorf("could not create command: %w", err)
+	}
+
+	if err = mapstruct.To(params, command.Data); err != nil {
+		return fmt.Errorf("could not map params to command '%s': %w", c.Command, err)
+	}
+
+	if err = i.commandBus.Emit(command); err != nil {
+		return err
 	}
 	return nil
 }

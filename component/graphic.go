@@ -1,13 +1,9 @@
 package component
 
-import (
-	"github.com/dwethmar/beherit/cmd/mygame/sprite"
-)
-
 const GraphicType Type = "graphic"
 
 type Graphic struct {
-	Sprite  sprite.Sprite
+	Name    string
 	Width   int
 	Height  int
 	OffSetX int
@@ -17,8 +13,6 @@ type Graphic struct {
 func NewGraphicComponent() *Component {
 	return &Component{
 		Type: GraphicType,
-		Data: &Graphic{
-			Sprite: sprite.Sprite{},
-		},
+		Data: &Graphic{},
 	}
 }
