@@ -20,20 +20,11 @@ blueprints:
 triggers:
   game.created:
     - command: blueprint.create.entity
-      condition:
       vars:
         entity$: CreateEntity()
+        skeletonBlueprint$: find(env.blueprints, .Name == 'skeleton')
       params:
-        components:
-          - type: position
-            entity$: entity
-            data:
-              x$: 10 + 10
-              y: 10
-          - type: graphic
-            entity$: entity
-            data:
-              name: "SkeletonMoveDown1"
+        components$: vars.skeletonBlueprint.components
   
     - command: blueprint.create.entity
       condition:
@@ -42,12 +33,12 @@ triggers:
       params:
         components:
           - type: position
-            entity$: entity
+            entity$: vars.entity
             data:
               x: 50
               y: 50
           - type: follow
-            entity$: entity
+            entity$: vars.entity
             data:
               x: 150
               y: 150
@@ -61,36 +52,36 @@ triggers:
         pressedRight$: KeyPressed('right') || KeyPressed('d')
         pos$: first(ListComponents('position'))
         spd: 1 # speed
-      condition: pos != nil && (pressedUp || pressedDown || pressedLeft || pressedRight)
+      condition: vars.pos != nil && (vars.pressedUp ||vars. pressedDown || vars.pressedLeft || vars.pressedRight)
       params:
         components:
-          - id$: pos.ID
+          - id$: vars.pos.ID
             type: position
-            entity$: pos.Entity
+            entity$: vars.pos.Entity
             data:
-              x$: "let left = pressedLeft ? spd : 0; let right = pressedRight ? spd : 0; pos.Data.X + right - left"
-              y$: "let up = pressedUp ? spd : 0; let down = pressedDown ? spd : 0; pos.Data.Y + down - up"
+              x$: "let left = vars.pressedLeft ? vars.spd : 0; let right = vars.pressedRight ? vars.spd : 0; vars.pos.Data.X + right - left"
+              y$: "let up = vars.pressedUp ? vars.spd : 0; let down = vars.pressedDown ? vars.spd : 0; vars.pos.Data.Y + down - up"
 
     - command: follow.move-towards-target
       vars:
         entities$: map(ListComponents('follow'), {.Entity})
-      condition: len(entities) > 0
+      condition: len(vars.entities) > 0
       params:
-        entities$: entities
+        entities$: vars.entities
 
   game.input.cursor:
     - command: follow.set-target
       vars:
         entities$: map(ListComponents('follow'), {.Entity})
-      condition: len(entities) > 0
+      condition: len(vars.entities) > 0
       params:
-        entities$: entities
-        x$: cursor.X
-        y$: cursor.Y
+        entities$: vars.entities
+        x$: env.cursor.x
+        y$: env.cursor.y
 
   game.draw:
     - command: render
       condition: true
       params:
-        screen$: screen
+        screen$: env.screen
         components$: ListComponents('graphic')

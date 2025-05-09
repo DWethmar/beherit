@@ -23,10 +23,6 @@ func (m RegexExprMatcher) Match(key string) bool {
 	return m.KeyRegex.MatchString(key)
 }
 
-type Env interface {
-	Create() map[string]any
-}
-
 type Invoker struct {
 	logger         *slog.Logger
 	configMux      sync.RWMutex
@@ -34,7 +30,7 @@ type Invoker struct {
 	entityManager  *entity.Manager
 	commandBus     *command.Bus
 	commandFactory *command.Factory
-	env            Env
+	newEnv         func() map[string]any
 	ec             *ExpressionCompiler
 }
 
@@ -43,7 +39,7 @@ type InvokerOptions struct {
 	EntityManager  *entity.Manager
 	CommandBus     *command.Bus
 	CommandFactory *command.Factory
-	Env            Env
+	NewEnv         func() map[string]any
 	ExprComp       *ExpressionCompiler
 }
 
@@ -55,7 +51,7 @@ func NewInvoker(opt InvokerOptions) *Invoker {
 		entityManager:  opt.EntityManager,
 		commandBus:     opt.CommandBus,
 		commandFactory: opt.CommandFactory,
-		env:            opt.Env,
+		newEnv:         opt.NewEnv,
 		ec:             opt.ExprComp,
 	}
 }
@@ -71,21 +67,21 @@ func (i *Invoker) Configure(triggers map[string][]*TriggerCommand) error {
 		for _, trigger := range triggers {
 			in, err := i.ec.CompileMap(trigger.Vars)
 			if err != nil {
-				return fmt.Errorf("could not compile expression: %w", err)
+				return fmt.Errorf("could not compile vars: %w", err)
 			}
 			trigger.Vars = in
 
 			if trigger.ConditionStr != "" {
 				cond, err := i.ec.Compile(trigger.ConditionStr)
 				if err != nil {
-					return fmt.Errorf("could not compile expression: %w", err)
+					return fmt.Errorf("could not compile condition: %w", err)
 				}
 				trigger.condition = cond
 			}
 
 			p, err := i.ec.CompileMap(trigger.Params)
 			if err != nil {
-				return fmt.Errorf("could not compile expression: %w", err)
+				return fmt.Errorf("could not compile params: %w", err)
 			}
 			trigger.Params = p
 		}
@@ -100,7 +96,7 @@ func (i *Invoker) Invoke(t string, globalEnv map[string]any) error {
 	if !ok {
 		return nil
 	}
-	env := i.env.Create()
+	env := i.newEnv()
 	maps.Copy(env, globalEnv)
 	for _, c := range triggers {
 		if err := i.trigger(c, env); err != nil {
@@ -116,15 +112,15 @@ func (i *Invoker) trigger(c *TriggerCommand, globalEnv map[string]any) error {
 	if c.Vars != nil {
 		vars, err := i.ec.Run(c.Vars, localEnv)
 		if err != nil {
-			return fmt.Errorf("could not run expression for command '%s': %w", c.Command, err)
+			return fmt.Errorf("could not run vars expression for command '%s': %w", c.Command, err)
 		}
-		maps.Copy(localEnv, vars)
+		localEnv["vars"] = vars
 	}
 	// check if condition is met
 	if c.condition != nil {
 		cond, err := expr.Run(c.condition, localEnv)
 		if err != nil {
-			return fmt.Errorf("could not run expression for command '%s': %w", c.Command, err)
+			return fmt.Errorf("could not run condition expression for command '%s': %w", c.Command, err)
 		}
 		r, ok := cond.(bool)
 		if !ok {
@@ -137,7 +133,7 @@ func (i *Invoker) trigger(c *TriggerCommand, globalEnv map[string]any) error {
 
 	params, err := i.ec.Run(c.Params, localEnv)
 	if err != nil {
-		return fmt.Errorf("could not run expression for command '%s': %w", c.Command, err)
+		return fmt.Errorf("could not run param expression for command '%s': %w", c.Command, err)
 	}
 
 	command, err := i.commandFactory.Create(c.Command)

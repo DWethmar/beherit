@@ -112,12 +112,14 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	commandFactory.Register(game.NewRenderCommand)
 	commandBus.RegisterHandler(game.NewRenderCommand(), renderSystem)
 
+	env := &env{logger: logger, entityManager: em, componentManager: cm}
+
 	invoker := beherit.NewInvoker(beherit.InvokerOptions{
 		Logger:         logger,
 		EntityManager:  em,
 		CommandBus:     commandBus,
 		CommandFactory: commandFactory,
-		Env:            &env{logger: logger, entityManager: em, componentManager: cm},
+		NewEnv:         env.Create,
 		ExprComp: beherit.NewExpressionCompiler(&beherit.RegexExprMatcher{
 			KeyRegex: MatchByEndingDollarRegex,
 		}),

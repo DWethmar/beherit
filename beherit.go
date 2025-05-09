@@ -59,8 +59,14 @@ func NewGame(opts Options) *Game {
 }
 
 type Cursor struct {
-	X int `json:"x"`
-	Y int `json:"y"`
+	X int `json:"x" expr:"x"`
+	Y int `json:"y" expr:"y"`
+}
+
+type Env struct {
+	Screen     *ebiten.Image `json:"screen" expr:"screen"`
+	Cursor     Cursor        `json:"cursor" expr:"cursor"`
+	Blueprints []*Blueprint  `json:"blueprints" expr:"blueprints"`
 }
 
 func (g *Game) Update() error {
@@ -69,8 +75,13 @@ func (g *Game) Update() error {
 
 	x, y := ebiten.CursorPosition()
 	globalEnv := map[string]any{
-		"cursor":     Cursor{X: x, Y: y},
-		"blueprints": g.Config.Blueprints,
+		"env": Env{
+			Cursor: Cursor{
+				X: x,
+				Y: y,
+			},
+			Blueprints: g.Config.Blueprints,
+		},
 	}
 	switch g.state {
 	case GameStateInitializing:
@@ -136,10 +147,18 @@ func (g *Game) loadConfig() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	env := map[string]any{
-		"screen": screen,
+	x, y := ebiten.CursorPosition()
+	globalEnv := map[string]any{
+		"env": Env{
+			Screen: screen,
+			Cursor: Cursor{
+				X: x,
+				Y: y,
+			},
+			Blueprints: g.Config.Blueprints,
+		},
 	}
-	if err := g.Invoker.Invoke(GameDraw, env); err != nil {
+	if err := g.Invoker.Invoke(GameDraw, globalEnv); err != nil {
 		g.logger.Error("could not invoke draw trigger", slog.String("error", err.Error()))
 	}
 }

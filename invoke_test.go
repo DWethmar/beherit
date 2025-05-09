@@ -60,7 +60,6 @@ func TestInvoker_Invoke(t *testing.T) {
 			EntityManager:  entityManager,
 			CommandBus:     commandBus,
 			CommandFactory: commandFactory,
-			Env:            MockEnv{},
 			ExprComp: beherit.NewExpressionCompiler(&beherit.RegexExprMatcher{
 				KeyRegex: MatchByEndingDollarRegex,
 			}),

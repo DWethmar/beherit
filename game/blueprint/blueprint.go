@@ -38,7 +38,16 @@ func (s *System) Handle(c *command.Command) error {
 }
 
 func (s *System) createEntity(cmd *game.CreateEntity) error {
+	if cmd == nil {
+		return fmt.Errorf("command is nil")
+	}
+	if cmd.Components == nil {
+		return fmt.Errorf("components is nil")
+	}
 	for _, n := range cmd.Components {
+		if n == nil {
+			return fmt.Errorf("component is nil")
+		}
 		// check if data is an map. This happens if the command is from a trigger
 		if data, ok := n.Data.(map[string]any); ok {
 			c, err := s.cf.Create(n.Type)
@@ -59,6 +68,12 @@ func (s *System) createEntity(cmd *game.CreateEntity) error {
 }
 
 func (s *System) updateEntity(cmd *game.UpdateEntity) error {
+	if cmd == nil {
+		return fmt.Errorf("command is nil")
+	}
+	if cmd.Components == nil {
+		return fmt.Errorf("components is nil")
+	}
 	for _, n := range cmd.Components {
 		c, ok := s.cm.FirstByEntity(n.Entity, n.Type)
 		if !ok {

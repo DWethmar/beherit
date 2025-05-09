@@ -73,7 +73,7 @@ func (ec *ExpressionCompiler) CompileMap(params map[string]any) (map[string]any,
 			} else {
 				program, err = expr.Compile(v)
 				if err != nil {
-					return nil, fmt.Errorf("could not compile expression: %w", err)
+					return nil, fmt.Errorf("could not compile expression %q: %w", v, err)
 				}
 				ec.programs[v] = program
 			}
@@ -113,7 +113,7 @@ func (ec *ExpressionCompiler) Run(params map[string]any, env any) (map[string]an
 		case *vm.Program:
 			r, err := expr.Run(v, env)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("could not run expression %q: %w", key, err)
 			}
 			result[key] = r
 		default:

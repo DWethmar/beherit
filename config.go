@@ -11,9 +11,9 @@ type TriggerCommand struct {
 }
 
 type Blueprint struct {
-	Name        string           `yaml:"name"`
-	Description string           `yaml:"description"`
-	Components  []map[string]any `yaml:"components"`
+	Name        string           `yaml:"name" expr:"name"`
+	Description string           `yaml:"description" expr:"description"`
+	Components  []map[string]any `yaml:"components" expr:"components"`
 }
 
 type Config struct {
