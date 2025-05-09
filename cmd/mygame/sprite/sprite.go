@@ -4,8 +4,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-type Sprites map[Image]*Sprite
-
 // Sprite is a sprite.
 type Sprite struct {
 	Img     *ebiten.Image
@@ -33,54 +31,67 @@ func bottomCenteredAlignedSprite(img *ebiten.Image) *Sprite {
 }
 
 // Load returns all the sprites used in the game.
-func Load(s *Spritesheet) map[string]*Sprite {
-	return map[string]*Sprite{
+func LoadSkeletonDeath(i *ebiten.Image) map[uint]*Sprite {
+	cells := CreateRectangleGrid(skeletonDeathCols, skeletonDeathRows, skeletonDeathWidth, skeletonDeathHeight)
+
+	return map[uint]*Sprite{
 		// Skeleton Death Sprites
-		"SkeletonDeath1": bottomCenteredAlignedSprite(s.GetImage(SkeletonDeath1)),
-		"SkeletonDeath2": bottomCenteredAlignedSprite(s.GetImage(SkeletonDeath2)),
-		"SkeletonDeath3": bottomCenteredAlignedSprite(s.GetImage(SkeletonDeath3)),
-		"SkeletonDeath4": bottomCenteredAlignedSprite(s.GetImage(SkeletonDeath4)),
-		"SkeletonDeath5": bottomCenteredAlignedSprite(s.GetImage(SkeletonDeath5)),
-		"SkeletonDeath6": bottomCenteredAlignedSprite(s.GetImage(SkeletonDeath6)),
+		SkeletonDeath1: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[0][0]))),
+		SkeletonDeath2: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[1][0]))),
+		SkeletonDeath3: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[2][0]))),
+		SkeletonDeath4: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[3][0]))),
+		SkeletonDeath5: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[4][0]))),
+		SkeletonDeath6: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[5][0]))),
+	}
+}
+
+// Load returns all the sprites used in the game.
+func LoadSkeletonMove(i *ebiten.Image) map[uint]*Sprite {
+	cells := CreateRectangleGrid(skeletonMoveCols, skeletonMoveRows, skeletonMoveWidth, skeletonMoveHeight)
+
+	return map[uint]*Sprite{
 		// Skeleton Move Up Sprites
-		"SkeletonMoveUp1": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveUp1)),
-		"SkeletonMoveUp2": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveUp2)),
-		"SkeletonMoveUp3": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveUp3)),
-		"SkeletonMoveUp4": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveUp4)),
-		"SkeletonMoveUp5": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveUp5)),
-		"SkeletonMoveUp6": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveUp6)),
-		"SkeletonMoveUp7": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveUp7)),
-		"SkeletonMoveUp8": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveUp8)),
-		"SkeletonMoveUp9": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveUp9)),
+		SkeletonMoveUp1: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[0][0]))),
+		SkeletonMoveUp2: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[1][0]))),
+		SkeletonMoveUp3: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[2][0]))),
+		SkeletonMoveUp4: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[3][0]))),
+		SkeletonMoveUp5: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[4][0]))),
+		SkeletonMoveUp6: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[5][0]))),
+		SkeletonMoveUp7: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[6][0]))),
+		SkeletonMoveUp8: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[7][0]))),
+		SkeletonMoveUp9: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[8][0]))),
+
 		// Skeleton Move Left Sprites
-		"SkeletonMoveLeft1": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveLeft1)),
-		"SkeletonMoveLeft2": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveLeft2)),
-		"SkeletonMoveLeft3": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveLeft3)),
-		"SkeletonMoveLeft4": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveLeft4)),
-		"SkeletonMoveLeft5": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveLeft5)),
-		"SkeletonMoveLeft6": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveLeft6)),
-		"SkeletonMoveLeft7": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveLeft7)),
-		"SkeletonMoveLeft8": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveLeft8)),
-		"SkeletonMoveLeft9": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveLeft9)),
+		SkeletonMoveLeft1: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[0][1]))),
+		SkeletonMoveLeft2: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[1][1]))),
+		SkeletonMoveLeft3: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[2][1]))),
+		SkeletonMoveLeft4: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[3][1]))),
+		SkeletonMoveLeft5: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[4][1]))),
+		SkeletonMoveLeft6: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[5][1]))),
+		SkeletonMoveLeft7: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[6][1]))),
+		SkeletonMoveLeft8: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[7][1]))),
+		SkeletonMoveLeft9: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[8][1]))),
+
 		// Skeleton Move Down Sprites
-		"SkeletonMoveDown1": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveDown1)),
-		"SkeletonMoveDown2": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveDown2)),
-		"SkeletonMoveDown3": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveDown3)),
-		"SkeletonMoveDown4": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveDown4)),
-		"SkeletonMoveDown5": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveDown5)),
-		"SkeletonMoveDown6": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveDown6)),
-		"SkeletonMoveDown7": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveDown7)),
-		"SkeletonMoveDown8": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveDown8)),
-		"SkeletonMoveDown9": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveDown9)),
+		SkeletonMoveDown1: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[0][2]))),
+		SkeletonMoveDown2: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[1][2]))),
+		SkeletonMoveDown3: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[2][2]))),
+		SkeletonMoveDown4: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[3][2]))),
+		SkeletonMoveDown5: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[4][2]))),
+		SkeletonMoveDown6: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[5][2]))),
+		SkeletonMoveDown7: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[6][2]))),
+		SkeletonMoveDown8: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[7][2]))),
+		SkeletonMoveDown9: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[8][2]))),
+
 		// Skeleton Move Right Sprites
-		"SkeletonMoveRight1": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveRight1)),
-		"SkeletonMoveRight2": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveRight2)),
-		"SkeletonMoveRight3": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveRight3)),
-		"SkeletonMoveRight4": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveRight4)),
-		"SkeletonMoveRight5": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveRight5)),
-		"SkeletonMoveRight6": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveRight6)),
-		"SkeletonMoveRight7": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveRight7)),
-		"SkeletonMoveRight8": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveRight8)),
-		"SkeletonMoveRight9": bottomCenteredAlignedSprite(s.GetImage(SkeletonMoveRight9)),
+		SkeletonMoveRight1: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[0][3]))),
+		SkeletonMoveRight2: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[1][3]))),
+		SkeletonMoveRight3: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[2][3]))),
+		SkeletonMoveRight4: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[3][3]))),
+		SkeletonMoveRight5: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[4][3]))),
+		SkeletonMoveRight6: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[5][3]))),
+		SkeletonMoveRight7: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[6][3]))),
+		SkeletonMoveRight8: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[7][3]))),
+		SkeletonMoveRight9: bottomCenteredAlignedSprite(ebiten.NewImageFromImage(i.SubImage(cells[8][3]))),
 	}
 }

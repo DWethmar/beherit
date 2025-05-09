@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"embed"
 	"flag"
 	"fmt"
 	"log/slog"
+	"maps"
 	"os"
 	"regexp"
 
@@ -20,6 +22,9 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
+
+//go:embed images
+var imagesFS embed.FS
 
 var MatchByEndingDollarRegex = regexp.MustCompile(`\$$`)
 var configFileFlag = flag.String("config", "config.yaml", "config file")
@@ -86,12 +91,24 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	commandBus.RegisterHandler(game.NewSetTargetCommand(), followSystem)
 	commandBus.RegisterHandler(game.NewMoveTowardsTarget(), followSystem)
 
-	sh, err := sprite.NewSpritesheet()
+	skeletonDeathImg, err := sprite.LoadPng(imagesFS, "images/skeleton_death.png")
 	if err != nil {
-		return fmt.Errorf("failed to load spritesheet: %w", err)
+		return fmt.Errorf("failed to load images/skeleton_death.png: %w", err)
 	}
 
-	renderSystem := render.New(logger, cm, sprite.Load(sh))
+	skeletonMoveImg, err := sprite.LoadPng(imagesFS, "images/skeleton_move.png")
+	if err != nil {
+		return fmt.Errorf("failed to load images/skeleton_move.png: %w", err)
+	}
+
+	skeletonDeathSprites := sprite.LoadSkeletonDeath(ebiten.NewImageFromImage(skeletonDeathImg))
+	skeletonMoveSprites := sprite.LoadSkeletonMove(ebiten.NewImageFromImage(skeletonMoveImg))
+
+	var sprites map[uint]*sprite.Sprite = make(map[uint]*sprite.Sprite)
+	maps.Copy(sprites, skeletonDeathSprites)
+	maps.Copy(sprites, skeletonMoveSprites)
+
+	renderSystem := render.New(logger, cm, sprites)
 	commandFactory.Register(game.NewRenderCommand)
 	commandBus.RegisterHandler(game.NewRenderCommand(), renderSystem)
 

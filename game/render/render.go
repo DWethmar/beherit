@@ -19,10 +19,10 @@ var red = color.RGBA{0xff, 0x00, 0x00, 0xff}
 type Renderer struct {
 	logger  *slog.Logger
 	cm      *component.Manager
-	sprites map[string]*sprite.Sprite
+	sprites map[uint]*sprite.Sprite
 }
 
-func New(logger *slog.Logger, cm *component.Manager, sprites map[string]*sprite.Sprite) *Renderer {
+func New(logger *slog.Logger, cm *component.Manager, sprites map[uint]*sprite.Sprite) *Renderer {
 	return &Renderer{
 		logger:  logger,
 		cm:      cm,
