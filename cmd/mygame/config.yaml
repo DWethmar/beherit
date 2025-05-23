@@ -4,6 +4,7 @@ env:
       description: Skeleton
       components:
         - type: position
+          entity: 0
           data:
             x: 0
             y: 0
@@ -14,51 +15,86 @@ env:
       description: follows the cursor
       components:
         - type: follow
+          entity: 0
           data:
             x: 0
             y: 0
+  components:
+    position:
+      type: position
+      entity: 0
+      data:
+        x: 0
+        y: 0
+    graphic:
+      type: graphic
+      entity: 0
+      data:
+        name: ""
+    follow:
+      type: follow
+      entity: 0
+      data:
+        x: 0
+        y: 0
 
 triggers:
   game.created:
     - command: blueprint.create.entity
       vars:
         entity$: env.CreateEntity()
-        components$: find(env.blueprints, .name == 'skeleton').components
         x: 100
         y: 100
+        graphicName: "SkeletonMoveDown1"
+        position$: env.components.position
+        graphic$: env.components.graphic
       set:
-        - path: vars.components[0].data.x
-          value: vars.x
-        - path: vars.components[0].data.y
-          value: vars.y
-        - path: vars.components[*].entity
+        # Set position
+        - path: vars.position.entity
           value: vars.entity
+        - path: vars.position.data.x
+          value: vars.x
+        - path: vars.position.data.y
+          value: vars.y
+        # Set graphic
+        - path: vars.graphic.entity
+          value: vars.entity
+        - path: vars.graphic.data.name
+          value: vars.graphicName
       mapping:
-        components$: vars.components
+        components$: "[vars.position, vars.graphic]"
 
     - command: blueprint.create.entity
-      condition:
       vars:
         entity$: env.CreateEntity()
-        components$: "concat(
-          find(env.blueprints, .name == 'skeleton').components,
-          find(env.blueprints, .name == 'follow').components
-          )"
-        x: 120
-        y: 130
+        x: 150
+        y: 150
+        graphicName: "SkeletonMoveDown1"
+        position$: env.components.position
+        graphic$: env.components.graphic
+        follow$: env.components.follow
       set:
-        - path: vars.components[0].data.x
-          value: vars.x
-        - path: vars.components[0].data.y
-          value: vars.y
-        - path: vars.components[1].data.x
-          value: vars.x
-        - path: vars.components[1].data.y
-          value: vars.y
-        - path: vars.components[*].entity
+        # Set position
+        - path: vars.position.entity
           value: vars.entity
+        - path: vars.position.data.x
+          value: vars.x
+        - path: vars.position.data.y
+          value: vars.y
+        # Set graphic
+        - path: vars.graphic.entity
+          value: vars.entity
+        - path: vars.graphic.data.name
+          value: vars.graphicName
+        # Set follow
+        - path: vars.follow.entity
+          value: vars.entity
+        - path: vars.follow.data.x
+          value: vars.x
+        - path: vars.follow.data.y
+          value: vars.y
       mapping:
-        components$: vars.components
+        components$: "[vars.position, vars.graphic, vars.follow]"
 
   game.updated:
     - command: graphics.sort

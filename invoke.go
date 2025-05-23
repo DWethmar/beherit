@@ -72,6 +72,16 @@ func (i *Invoker) SetTriggers(triggers map[string][]*TriggerCommand) error {
 			}
 			trigger.Vars = in
 
+			if trigger.Set != nil {
+				for _, s := range trigger.Set {
+					v, err := i.ec.Compile(s.ValueStr)
+					if err != nil {
+						return fmt.Errorf("could not compile set value: %w", err)
+					}
+					s.Value = v
+				}
+			}
+
 			if trigger.ConditionStr != "" {
 				cond, err := i.ec.Compile(trigger.ConditionStr)
 				if err != nil {
@@ -119,15 +129,16 @@ func (i *Invoker) trigger(c *TriggerCommand, env map[string]any) error {
 	}
 
 	// set clause
-	if len(c.Set) > 0 {
-		for _, s := range c.Set {
-			v, err := mapquery.Get(s.Value, env)
-			if err != nil {
-				return fmt.Errorf("failed to get value for set clause %q: %w", s.Path, err)
-			}
-			if err := mapquery.Set(s.Path, v, &env); err != nil {
-				return fmt.Errorf("failed to set value for set clause %q: %w", s.Path, err)
-			}
+	for _, s := range c.Set {
+		if s.Value == nil {
+			return fmt.Errorf("set value is nil for command %q", c.Command)
+		}
+		val, err := expr.Run(s.Value, env)
+		if err != nil {
+			return fmt.Errorf("failed to run set value expression for command %q: %w", c.Command, err)
+		}
+		if err := mapquery.Set(s.Path, val, &env); err != nil {
+			return fmt.Errorf("failed to set value for command %q: %w", c.Command, err)
 		}
 	}
 
