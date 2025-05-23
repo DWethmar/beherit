@@ -145,9 +145,12 @@ func (f *Factory) Register(factory func() *Component) {
 }
 
 func (f *Factory) Create(componentType Type) (*Component, error) {
+	if componentType == "" {
+		return nil, fmt.Errorf("component type is empty")
+	}
 	factory, ok := f.factories[componentType]
 	if !ok {
-		return nil, fmt.Errorf("factory not found for component type %s", componentType)
+		return nil, fmt.Errorf("factory not found for component type %q", componentType)
 	}
 	return factory(), nil
 }

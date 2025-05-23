@@ -1,59 +1,80 @@
-blueprints:
-  - name: skeleton
-    description: Skeleton
-    components:
-      - type: position
-        data:
-          x: 0
-          y: 0
-      - type: graphic
-        data:
-          name: "SkeletonMoveDown1"
-  - name: follow
-    description: follows the cursor
-    components:
-      - type: follow
-        data:
-          x: 0
-          y: 0
+env:
+  blueprints:
+    - name: skeleton
+      description: Skeleton
+      components:
+        - type: position
+          data:
+            x: 0
+            y: 0
+        - type: graphic
+          data:
+            name: "SkeletonMoveDown1"
+    - name: follow
+      description: follows the cursor
+      components:
+        - type: follow
+          data:
+            x: 0
+            y: 0
 
 triggers:
   game.created:
     - command: blueprint.create.entity
       vars:
-        entity$: CreateEntity()
-        skeletonBlueprint$: find(env.blueprints, .Name == 'skeleton')
-      params:
-        components$: vars.skeletonBlueprint.components
-  
+        entity$: env.CreateEntity()
+        components$: find(env.blueprints, .name == 'skeleton').components
+        x: 100
+        y: 100
+      set:
+        - path: vars.components[0].data.x
+          value: vars.x
+        - path: vars.components[0].data.y
+          value: vars.y
+        - path: vars.components[*].entity
+          value: vars.entity
+      mapping:
+        components$: vars.components
+
     - command: blueprint.create.entity
       condition:
       vars:
-        entity$: CreateEntity()
-      params:
-        components:
-          - type: position
-            entity$: vars.entity
-            data:
-              x: 50
-              y: 50
-          - type: follow
-            entity$: vars.entity
-            data:
-              x: 150
-              y: 150
+        entity$: env.CreateEntity()
+        components$: "concat(
+          find(env.blueprints, .name == 'skeleton').components,
+          find(env.blueprints, .name == 'follow').components
+          )"
+        x: 120
+        y: 130
+      set:
+        - path: vars.components[0].data.x
+          value: vars.x
+        - path: vars.components[0].data.y
+          value: vars.y
+        - path: vars.components[1].data.x
+          value: vars.x
+        - path: vars.components[1].data.y
+          value: vars.y
+        - path: vars.components[*].entity
+          value: vars.entity
+      mapping:
+        components$: vars.components
 
   game.updated:
+    - command: graphics.sort
+      mapping:
+        graphicComponents$: env.ListComponents('graphic')
+
     - command: blueprint.update.entity
       vars:
-        pressedUp$: KeyPressed('up') || KeyPressed('w')
-        pressedDown$: KeyPressed('down') || KeyPressed('s')
-        pressedLeft$: KeyPressed('left') || KeyPressed('a')
-        pressedRight$: KeyPressed('right') || KeyPressed('d')
-        pos$: first(ListComponents('position'))
-        spd: 1 # speed
+        pressedUp$: env.KeyPressed('up') || env.KeyPressed('w')
+        pressedDown$: env.KeyPressed('down') || env.KeyPressed('s')
+        pressedLeft$: env.KeyPressed('left') || env.KeyPressed('a')
+        pressedRight$: env.KeyPressed('right') || env.KeyPressed('d')
+        pos$: first(env.ListComponents('position'))
+        spd: 2 # speed
       condition: vars.pos != nil && (vars.pressedUp ||vars. pressedDown || vars.pressedLeft || vars.pressedRight)
-      params:
+      mapping:
         components:
           - id$: vars.pos.ID
             type: position
@@ -64,24 +85,40 @@ triggers:
 
     - command: follow.move-towards-target
       vars:
-        entities$: map(ListComponents('follow'), {.Entity})
+        entities$: map(env.ListComponents('follow'), {.Entity})
       condition: len(vars.entities) > 0
-      params:
+      mapping:
         entities$: vars.entities
 
   game.input.cursor:
     - command: follow.set-target
       vars:
-        entities$: map(ListComponents('follow'), {.Entity})
+        entities$: map(env.ListComponents('follow'), {.Entity})
       condition: len(vars.entities) > 0
-      params:
+      mapping:
         entities$: vars.entities
         x$: env.cursor.x
         y$: env.cursor.y
 
+    - command: blueprint.create.entity
+      vars:
+        entity$: env.CreateEntity()
+        components$: find(env.blueprints, .name == 'skeleton').components
+        x$: env.cursor.x
+        y$: env.cursor.y
+      set:
+        - path: vars.components[0].data.x
+          value: vars.x
+        - path: vars.components[0].data.y
+          value: vars.y
+        - path: vars.components[*].entity
+          value: vars.entity
+      mapping:
+        components$: vars.components
+
   game.draw:
     - command: render
       condition: true
-      params:
+      mapping:
         screen$: env.screen
-        components$: ListComponents('graphic')
+        components$: sortBy(env.ListComponents('graphic'), {.Data.Layer}, "desc")

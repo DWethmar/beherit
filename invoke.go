@@ -4,13 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"regexp"
 	"sync"
 
-	"maps"
-
 	"github.com/dwethmar/beherit/command"
 	"github.com/dwethmar/beherit/entity"
+	"github.com/dwethmar/beherit/mapcopier"
+	"github.com/dwethmar/beherit/mapquery"
 	"github.com/dwethmar/beherit/mapstruct"
 	"github.com/expr-lang/expr"
 )
@@ -56,7 +57,7 @@ func NewInvoker(opt InvokerOptions) *Invoker {
 	}
 }
 
-func (i *Invoker) Configure(triggers map[string][]*TriggerCommand) error {
+func (i *Invoker) SetTriggers(triggers map[string][]*TriggerCommand) error {
 	i.configMux.Lock()
 	defer i.configMux.Unlock()
 	if triggers == nil {
@@ -79,11 +80,11 @@ func (i *Invoker) Configure(triggers map[string][]*TriggerCommand) error {
 				trigger.condition = cond
 			}
 
-			p, err := i.ec.CompileMap(trigger.Params)
+			p, err := i.ec.CompileMap(trigger.Mapping)
 			if err != nil {
 				return fmt.Errorf("could not compile params: %w", err)
 			}
-			trigger.Params = p
+			trigger.Mapping = p
 		}
 	}
 	return nil
@@ -97,30 +98,44 @@ func (i *Invoker) Invoke(t string, globalEnv map[string]any) error {
 		return nil
 	}
 	env := i.newEnv()
-	maps.Copy(env, globalEnv)
-	for _, c := range triggers {
-		if err := i.trigger(c, env); err != nil {
-			return err
+	for j, c := range triggers {
+		localEnv := map[string]any{}
+		maps.Copy(localEnv, mapcopier.Copy(globalEnv))
+		maps.Copy(localEnv, mapcopier.Copy(env))
+		if err := i.trigger(c, map[string]any{"env": localEnv}); err != nil {
+			return fmt.Errorf("failed to trigger command %d: %w", j, err)
 		}
 	}
 	return nil
 }
 
-func (i *Invoker) trigger(c *TriggerCommand, globalEnv map[string]any) error {
-	localEnv := map[string]any{}
-	maps.Copy(localEnv, globalEnv)
+func (i *Invoker) trigger(c *TriggerCommand, env map[string]any) error {
 	if c.Vars != nil {
-		vars, err := i.ec.Run(c.Vars, localEnv)
+		vars, err := i.ec.Run(c.Vars, env)
 		if err != nil {
-			return fmt.Errorf("could not run vars expression for command '%s': %w", c.Command, err)
+			return fmt.Errorf("failed to run vars expression for command %q: %w", c.Command, err)
 		}
-		localEnv["vars"] = vars
+		env["vars"] = vars
 	}
+
+	// set clause
+	if len(c.Set) > 0 {
+		for _, s := range c.Set {
+			v, err := mapquery.Get(s.Value, env)
+			if err != nil {
+				return fmt.Errorf("failed to get value for set clause %q: %w", s.Path, err)
+			}
+			if err := mapquery.Set(s.Path, v, &env); err != nil {
+				return fmt.Errorf("failed to set value for set clause %q: %w", s.Path, err)
+			}
+		}
+	}
+
 	// check if condition is met
 	if c.condition != nil {
-		cond, err := expr.Run(c.condition, localEnv)
+		cond, err := expr.Run(c.condition, env)
 		if err != nil {
-			return fmt.Errorf("could not run condition expression for command '%s': %w", c.Command, err)
+			return fmt.Errorf("failed to run condition expression for command %q: %w", c.Command, err)
 		}
 		r, ok := cond.(bool)
 		if !ok {
@@ -131,18 +146,18 @@ func (i *Invoker) trigger(c *TriggerCommand, globalEnv map[string]any) error {
 		}
 	}
 
-	params, err := i.ec.Run(c.Params, localEnv)
-	if err != nil {
-		return fmt.Errorf("could not run param expression for command '%s': %w", c.Command, err)
-	}
-
 	command, err := i.commandFactory.Create(c.Command)
 	if err != nil {
-		return fmt.Errorf("could not create command: %w", err)
+		return fmt.Errorf("failed to create command %q: %w", c.Command, err)
 	}
 
-	if err = mapstruct.To(params, command.Data); err != nil {
-		return fmt.Errorf("could not map params to command '%s': %w", c.Command, err)
+	data, err := i.ec.Run(c.Mapping, env)
+	if err != nil {
+		return fmt.Errorf("failed to run param expression for command %q: %w", c.Command, err)
+	}
+
+	if err = mapstruct.To(data, command.Data); err != nil {
+		return fmt.Errorf("failed to map params to command %q: %w", c.Command, err)
 	}
 
 	if err = i.commandBus.Emit(command); err != nil {

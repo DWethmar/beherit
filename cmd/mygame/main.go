@@ -18,6 +18,7 @@ import (
 	"github.com/dwethmar/beherit/game"
 	"github.com/dwethmar/beherit/game/blueprint"
 	"github.com/dwethmar/beherit/game/follow"
+	"github.com/dwethmar/beherit/game/layering"
 	"github.com/dwethmar/beherit/game/render"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -78,19 +79,31 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	commandBus := command.NewBus(logger)
 	commandFactory := command.NewFactory()
 
+	// Register the command handlers
+
+	// blueprint system
 	blueprintSystem := blueprint.New(logger, cf, cm)
 	commandFactory.Register(game.NewCreateEntityCommand)
-	commandFactory.Register(game.NewUpdateEntityCommand)
-	commandFactory.Register(game.NewRemoveComponentsCommand)
 	commandBus.RegisterHandler(game.NewCreateEntityCommand(), blueprintSystem)
+
+	commandFactory.Register(game.NewUpdateEntityCommand)
 	commandBus.RegisterHandler(game.NewUpdateEntityCommand(), blueprintSystem)
 
+	commandFactory.Register(game.NewRemoveComponentsCommand)
+	commandBus.RegisterHandler(game.NewRemoveComponentsCommand(), blueprintSystem)
+
+	commandFactory.Register(game.NewSortGraphicsCommand)
+	commandBus.RegisterHandler(game.NewSortGraphicsCommand(), layering.New(cm))
+
+	// follow system
 	followSystem := follow.New(logger, cf, cm)
 	commandFactory.Register(game.NewSetTargetCommand)
-	commandFactory.Register(game.NewMoveTowardsTarget)
 	commandBus.RegisterHandler(game.NewSetTargetCommand(), followSystem)
+
+	commandFactory.Register(game.NewMoveTowardsTarget)
 	commandBus.RegisterHandler(game.NewMoveTowardsTarget(), followSystem)
 
+	// render system
 	skeletonDeathImg, err := sprite.LoadPng(imagesFS, "images/skeleton_death.png")
 	if err != nil {
 		return fmt.Errorf("failed to load images/skeleton_death.png: %w", err)

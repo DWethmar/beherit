@@ -30,7 +30,7 @@ func New(logger *slog.Logger, cm *component.Manager, sprites map[string]*sprite.
 	}
 }
 
-func (r *Renderer) Handle(cmd *command.Command) error {
+func (r *Renderer) HandleCommand(cmd *command.Command) error {
 	switch cmd.Type {
 	case game.RenderCommandType:
 		c, ok := cmd.Data.(*game.RenderComponentsCommand)

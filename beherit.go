@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"maps"
 	"os"
 	"sync"
 	"time"
@@ -64,9 +65,8 @@ type Cursor struct {
 }
 
 type Env struct {
-	Screen     *ebiten.Image `json:"screen" expr:"screen"`
-	Cursor     Cursor        `json:"cursor" expr:"cursor"`
-	Blueprints []*Blueprint  `json:"blueprints" expr:"blueprints"`
+	Screen *ebiten.Image `json:"screen" expr:"screen"`
+	Cursor Cursor        `json:"cursor" expr:"cursor"`
 }
 
 func (g *Game) Update() error {
@@ -74,24 +74,22 @@ func (g *Game) Update() error {
 	defer g.mux.RUnlock()
 
 	x, y := ebiten.CursorPosition()
-	globalEnv := map[string]any{
-		"env": Env{
-			Cursor: Cursor{
-				X: x,
-				Y: y,
-			},
-			Blueprints: g.Config.Blueprints,
+	env := map[string]any{
+		"cursor": Cursor{
+			X: x,
+			Y: y,
 		},
 	}
+	maps.Copy(env, g.Config.Env)
 	switch g.state {
 	case GameStateInitializing:
-		if err := g.Invoker.Invoke(GameCreatedTrigger, globalEnv); err != nil {
+		if err := g.Invoker.Invoke(GameCreatedTrigger, env); err != nil {
 			return fmt.Errorf("could not invoke %s trigger: %w", GameCreatedTrigger, err)
 		}
 		g.state = GameStateRunning
 	case GameStateRunning:
 		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-			if err := g.Invoker.Invoke(GameInputCursor, globalEnv); err != nil {
+			if err := g.Invoker.Invoke(GameInputCursor, env); err != nil {
 				return fmt.Errorf("could not invoke %s trigger: %w", GameInputCursor, err)
 			}
 		}
@@ -139,8 +137,8 @@ func (g *Game) loadConfig() error {
 	if err = yaml.NewDecoder(file).Decode(&config); err != nil {
 		return fmt.Errorf("could not decode yaml: %w", err)
 	}
-	if err = g.Invoker.Configure(config.Triggers); err != nil {
-		return fmt.Errorf("could not configure invoker: %w", err)
+	if err = g.Invoker.SetTriggers(config.Triggers); err != nil {
+		return fmt.Errorf("failed to set triggers: %w", err)
 	}
 	g.Config = &config
 	return nil
@@ -148,17 +146,15 @@ func (g *Game) loadConfig() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	x, y := ebiten.CursorPosition()
-	globalEnv := map[string]any{
-		"env": Env{
-			Screen: screen,
-			Cursor: Cursor{
-				X: x,
-				Y: y,
-			},
-			Blueprints: g.Config.Blueprints,
+	env := map[string]any{
+		"screen": screen,
+		"cursor": Cursor{
+			X: x,
+			Y: y,
 		},
 	}
-	if err := g.Invoker.Invoke(GameDraw, globalEnv); err != nil {
+	maps.Copy(env, g.Config.Env)
+	if err := g.Invoker.Invoke(GameDraw, env); err != nil {
 		g.logger.Error("could not invoke draw trigger", slog.String("error", err.Error()))
 	}
 }

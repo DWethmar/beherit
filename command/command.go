@@ -12,12 +12,12 @@ type Command struct {
 }
 
 type Handler interface {
-	Handle(*Command) error
+	HandleCommand(*Command) error
 }
 
 type HandlerFunc func(*Command) error
 
-func (f HandlerFunc) Handle(c *Command) error {
+func (f HandlerFunc) HandleCommand(c *Command) error {
 	return f(c)
 }
 
@@ -42,7 +42,7 @@ func (cb *Bus) Emit(c *Command) error {
 	if !ok {
 		return fmt.Errorf("no handler for trigger %s", c.Type)
 	}
-	return handler.Handle(c)
+	return handler.HandleCommand(c)
 }
 
 type Factory struct {

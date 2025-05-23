@@ -16,6 +16,8 @@ const (
 	MoveTowardsTargetType = "follow.move-towards-target"
 
 	RenderCommandType = "render"
+
+	SortGraphicsCommandType = "graphics.sort"
 )
 
 type CreateEntity struct {
@@ -104,6 +106,19 @@ func NewRenderCommand() *command.Command {
 		Data: &RenderComponentsCommand{
 			Screen:     nil,
 			Components: []component.Component{},
+		},
+	}
+}
+
+type SortGraphicsCommand struct {
+	GraphicComponents []component.Component `json:"graphicComponents"`
+}
+
+func NewSortGraphicsCommand() *command.Command {
+	return &command.Command{
+		Type: SortGraphicsCommandType,
+		Data: &SortGraphicsCommand{
+			GraphicComponents: []component.Component{},
 		},
 	}
 }

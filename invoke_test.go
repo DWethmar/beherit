@@ -34,7 +34,7 @@ func (e MockEnv) Create() map[string]any {
 	}
 }
 
-func TestInvoker_Invoke(t *testing.T) {
+func TestInvoker_SetTriggers(t *testing.T) {
 	type MockCommand struct {
 		EntityID   entity.Entity
 		Components []map[string]interface{}
@@ -64,11 +64,11 @@ func TestInvoker_Invoke(t *testing.T) {
 				KeyRegex: MatchByEndingDollarRegex,
 			}),
 		})
-		invoker.Configure(map[string][]*beherit.TriggerCommand{
+		invoker.SetTriggers(map[string][]*beherit.TriggerCommand{
 			beherit.GameCreatedTrigger: {
 				{
 					Command: "testcommand",
-					Params: map[string]any{
+					Mapping: map[string]any{
 						"EntityID$": "CreateEntity()",
 						"Components": []map[string]any{
 							{
@@ -83,7 +83,7 @@ func TestInvoker_Invoke(t *testing.T) {
 				},
 				{
 					Command: "testcommand",
-					Params: map[string]any{
+					Mapping: map[string]any{
 						"EntityID": 1,
 						"Components": []map[string]any{
 							{

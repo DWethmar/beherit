@@ -9,6 +9,7 @@ type Graphic struct {
 	ResizeH int    `json:"resize_h"`
 	OffSetX int    `json:"offset_x"`
 	OffSetY int    `json:"offset_y"`
+	Layer   int    `json:"layer"`
 }
 
 func NewGraphicComponent() *Component {

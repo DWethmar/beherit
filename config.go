@@ -2,21 +2,21 @@ package beherit
 
 import "github.com/expr-lang/expr/vm"
 
-type TriggerCommand struct {
-	Command      string         `yaml:"command"`
-	Vars         map[string]any `yaml:"vars"`
-	ConditionStr string         `yaml:"condition"`
-	condition    *vm.Program    `yaml:"-"`
-	Params       map[string]any `yaml:"params"`
+type Set struct {
+	Path  string `yaml:"path"`
+	Value string `yaml:"value"`
 }
 
-type Blueprint struct {
-	Name        string           `yaml:"name" expr:"name"`
-	Description string           `yaml:"description" expr:"description"`
-	Components  []map[string]any `yaml:"components" expr:"components"`
+type TriggerCommand struct {
+	Command      string         `yaml:"command"`
+	Vars         map[string]any `yaml:"vars"`      // 1
+	Set          []Set          `yaml:"set"`       // 2
+	ConditionStr string         `yaml:"condition"` // 3
+	condition    *vm.Program    `yaml:"-"`         //
+	Mapping      map[string]any `yaml:"mapping"`   // 4
 }
 
 type Config struct {
-	Blueprints []*Blueprint                 `yaml:"blueprints"`
-	Triggers   map[string][]*TriggerCommand `yaml:"triggers"`
+	Env      map[string]any               `yaml:"env"`
+	Triggers map[string][]*TriggerCommand `yaml:"triggers"`
 }

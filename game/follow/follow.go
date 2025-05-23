@@ -25,7 +25,7 @@ func New(logger *slog.Logger, cf *component.Factory, cm *component.Manager) *Sys
 	}
 }
 
-func (s *System) Handle(c *command.Command) error {
+func (s *System) HandleCommand(c *command.Command) error {
 	switch c := c.Data.(type) {
 	case *game.SetTarget:
 		return s.Target(c)
